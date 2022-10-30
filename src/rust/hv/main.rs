@@ -5,8 +5,7 @@ use std::path::PathBuf;
 use std::io::{self, Write, prelude::*, SeekFrom};
 use std::fs::File;
 use std::str;
-//use byteorder::{ByteOrder, LittleEndian};
-//use byteorder::{ByteOrder, BigEndian};
+use std::io::{Error, ErrorKind};
 
 #[derive(PartialEq)]
 pub enum Format {
@@ -134,7 +133,7 @@ fn dumpFile(path : &str) -> io::Result<()> {
    loop {
        if remain > 0 {
            // print remaining
-           for byte in buf {  // buf[offset..offset+remain]
+           for byte in &buf {  // buf[offset..offset+remain]
                 
                 if byteCnt == 0 {
                     if format1 == Format::Hex {
@@ -150,7 +149,7 @@ fn dumpFile(path : &str) -> io::Result<()> {
                     print!("{:02X} ", byte);
                     match byte {
                         0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c => strbuf[byteCnt] = 0x2e,
-                        _ => strbuf[byteCnt] = byte,
+                        _ => strbuf[byteCnt] = *byte,
                     }
                     //strbuf[byteCnt] = byte;
                     remain -= 1;
@@ -250,7 +249,7 @@ fn dumpFile(path : &str) -> io::Result<()> {
 }
 
 fn main() -> io::Result<()> {
-     println!("hv (HexView)  (c) Copyright D Rogatkin {}", 2022);
+     println!("hv (HexView) v 1.0 (c) Copyright {} D Rogatkin", 2022);
     
     let star = String::from("*");
     let args: Vec<String> = env::args().collect();
@@ -288,12 +287,12 @@ fn main() -> io::Result<()> {
             let file2 = pathsVer[num].as_path().display().to_string(); // into_os_string().into_string().unwrap()
             println!("Selected file : {}", file2);
             
-            dumpFile(&file2);
+            return dumpFile(&file2);
         } else {
             println!("Invalid entry - {}", num);
         }
     } else {
-        dumpFile(&file);
+        return dumpFile(&file);
     }
-    Ok(())
+    Err(Error::new(ErrorKind::Other, "Invalid file"))
 }
