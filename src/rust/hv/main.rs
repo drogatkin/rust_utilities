@@ -42,7 +42,7 @@ const PAGESIZE : u32 = 100;
 
 fn cmdProc() -> Cmd {
     io::stdout().flush().unwrap();
-    print!("\n\x1b[1;32m;2mEnter a command <ENTER> - next, Onnnn - move to the offset, F[D|H|O] - display format, N[1|3|6|a][l|b], q - exit :  \x1b[0m");
+    print!("\n\x1b[1;32mEnter a command <ENTER> - next, Onnnn - move to the offset, F[D|H|O] - display format, N[1|3|6|a][l|b], q - exit :  \x1b[0m");
     io::stdout().flush().unwrap();
     let mut line = String::new();
      std::io::stdin().read_line(&mut line).unwrap();
@@ -281,7 +281,7 @@ fn main() -> io::Result<()> {
         let num : usize = line.trim().parse()
             .expect("Please enter number");
         
-         if num >= 0 && num < pathsVer.len()  {
+         if num < pathsVer.len()  {
          
            // println!("Selected file : {:?}", pathsVer[num]);
             let file2 = pathsVer[num].as_path().display().to_string(); // into_os_string().into_string().unwrap()
