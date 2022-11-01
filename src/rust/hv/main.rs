@@ -40,7 +40,7 @@ pub enum Cmd {
 
 const PAGESIZE : u32 = 100;
 
-fn cmdProc() -> Cmd {
+fn cmd_proc() -> Cmd {
     io::stdout().flush().unwrap();
     print!("\n\x1b[1;32mEnter a command <ENTER> - next, Onnnn - move to the offset, F[D|H|O] - display format, N[1|3|6|a][l|b], q - exit :  \x1b[0m");
     io::stdout().flush().unwrap();
@@ -85,37 +85,37 @@ fn cmdProc() -> Cmd {
 }
 
 #[inline]
-fn BigEndian_read_u16(buf: &[u8]) -> u16 {
+fn little_endian_read_u16(buf: &[u8]) -> u16 {
     buf[0] as u16 | (buf[1] as u16)<<8
 }
 
 #[inline]
-fn LittleEndian_read_u16(buf: &[u8]) -> u16 {
+fn big_endian_read_u16(buf: &[u8]) -> u16 {
     buf[1] as u16 | (buf[0] as u16)<<8
 }
 
 #[inline]
-fn BigEndian_read_u32(buf: &[u8]) -> u32 {
+fn little_endian_read_u32(buf: &[u8]) -> u32 {
     buf[0] as u32 |  (buf[1] as u32)<<8 | (buf[2] as u32)<<16 | (buf[3] as u32)<<24
     //u32::from_be_bytes(buf)
 }
 
 #[inline]
-fn LittleEndian_read_u32(buf: &[u8]) -> u32 {
+fn big_endian_read_u32(buf: &[u8]) -> u32 {
     buf[3] as u32 | (buf[2] as u32)<<8 | (buf[1] as u32)<<16 | (buf[0] as u32)<<24
 }
 
 #[inline]
-fn BigEndian_read_u64(buf: &[u8]) -> u64 {
+fn little_endian_read_u64(buf: &[u8]) -> u64 {
     buf[0] as u64 | (buf[1] as u64)<<8 | (buf[2] as u64)<<16 | (buf[3] as u64)<<24 | (buf[4] as u64)<<32 | (buf[5] as u64)<<40 | (buf[6] as u64)<<48 | (buf[7] as u64)<<56
 }
 
 #[inline]
-fn LittleEndian_read_u64(buf: &[u8]) -> u64 {
+fn big_endian_read_u64(buf: &[u8]) -> u64 {
     buf[7] as u64 | (buf[6] as u64)<<8 | (buf[5] as u64)<<16 | (buf[4] as u64)<<24 | (buf[3] as u64)<<32 | (buf[2] as u64)<<40 | (buf[1] as u64)<<48 | (buf[0] as u64)<<56
 }
 
-fn dumpFile(path : &str) -> io::Result<()> {
+fn dump_file(path : &str) -> io::Result<()> {
     let mut buf = [0; 256];
     let mut strbuf = [0; 16];
    // let mut f = File::open(file2.to_owned().into());
@@ -124,8 +124,8 @@ fn dumpFile(path : &str) -> io::Result<()> {
    let mut remain : i64 = 0;
    let mut offset = 0;
    let mut counter : u64 = 0;
-   let mut byteCnt = 0;
-   let mut pageCnt = 0;
+   let mut byte_cnt = 0;
+   let mut page_cnt = 0;
   
    let mut format1 = Format::Dec;
    let mut format2 = Display::A;
@@ -135,7 +135,7 @@ fn dumpFile(path : &str) -> io::Result<()> {
            // print remaining
            for byte in &buf {  // buf[offset..offset+remain]
                 
-                if byteCnt == 0 {
+                if byte_cnt == 0 {
                     if format1 == Format::Hex {
                         print!("\n{:0>8x}: ", counter);
                     } else if format1 == Format::Oct {
@@ -143,19 +143,19 @@ fn dumpFile(path : &str) -> io::Result<()> {
                     } else {
                       print!("\n{:0>8}: ", counter);
                     }
-                    pageCnt += 1;
+                    page_cnt += 1;
                 }
                if offset == 0 {
                     print!("{:02X} ", byte);
                     match byte {
-                        0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c => strbuf[byteCnt] = 0x2e,
-                        _ => strbuf[byteCnt] = *byte,
+                        0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c => strbuf[byte_cnt] = 0x2e,
+                        _ => strbuf[byte_cnt] = *byte,
                     }
-                    //strbuf[byteCnt] = byte;
+                    //strbuf[byte_cnt] = byte;
                     remain -= 1;
-                    byteCnt += 1;
-                    if byteCnt == 16 {
-                        byteCnt = 0;
+                    byte_cnt += 1;
+                    if byte_cnt == 16 {
+                        byte_cnt = 0;
                         match format2 {
                            Display::A => {
                                //  let s = str::from_utf8(&strbuf).unwrap().to_string();
@@ -167,10 +167,10 @@ fn dumpFile(path : &str) -> io::Result<()> {
                                for ss in 0..8 {
                                    match format3 {
                                        Ending::BE => {
-                                           print!("{:<6} ", BigEndian_read_u16(&strbuf[ss*2..ss*2+2]));
+                                           print!("{:<6} ", big_endian_read_u16(&strbuf[ss*2..ss*2+2]));
                                        } ,
                                         Ending::LE => {
-                                           print!("{:<6} ", LittleEndian_read_u16(&strbuf[ss*2..ss*2+2]));
+                                           print!("{:<6} ", little_endian_read_u16(&strbuf[ss*2..ss*2+2]));
                                        }
                                   }   
                                }
@@ -179,10 +179,10 @@ fn dumpFile(path : &str) -> io::Result<()> {
                                for ss in 0..4 {
                                    match format3 {
                                       Ending::BE => {
-                                           print!("{:<10} ", BigEndian_read_u32(&strbuf[ss*4..ss*4+4]));
+                                           print!("{:<10} ", big_endian_read_u32(&strbuf[ss*4..ss*4+4]));
                                        } ,
                                         Ending::LE => {
-                                           print!("{:<10} ", LittleEndian_read_u32(&strbuf[ss*4..ss*4+4]));
+                                           print!("{:<10} ", little_endian_read_u32(&strbuf[ss*4..ss*4+4]));
                                        }
                                   }   
                                }
@@ -191,10 +191,10 @@ fn dumpFile(path : &str) -> io::Result<()> {
                                for ss in 0..2 {
                                    match format3 {
                                        Ending::BE => {
-                                           print!("{:<14} ", BigEndian_read_u64(&strbuf[ss*8..ss*8+8]));
+                                           print!("{:<14} ", big_endian_read_u64(&strbuf[ss*8..ss*8+8]));
                                        } ,
                                         Ending::LE => {
-                                           print!("{:<14} ", LittleEndian_read_u64(&strbuf[ss*8..ss*8+8]));
+                                           print!("{:<14} ", little_endian_read_u64(&strbuf[ss*8..ss*8+8]));
                                        }
                                   }   
                                }
@@ -202,9 +202,9 @@ fn dumpFile(path : &str) -> io::Result<()> {
                         }
                       
                         
-                        if pageCnt == PAGESIZE {
-                           pageCnt = 0;
-                           let cmd = cmdProc();
+                        if page_cnt == PAGESIZE {
+                           page_cnt = 0;
+                           let cmd = cmd_proc();
                            match cmd {
                                Cmd::Next => (),
                                Cmd::Quit => return Ok(()),
@@ -213,7 +213,7 @@ fn dumpFile(path : &str) -> io::Result<()> {
                                   counter -= 1;
                                   f.seek(SeekFrom::Start(counter))?;
                                   remain = 0;
-                                  byteCnt = 0;
+                                  byte_cnt = 0;
                                 },
                                Cmd::Format{format} => format1 = format,
                                Cmd::Display(d, e) => {format2 = d; format3 = e}
@@ -233,10 +233,10 @@ fn dumpFile(path : &str) -> io::Result<()> {
       // println!("Read - {}", n);
        if n == 0 {
            //println!("eof");
-           for _ in 0..16-byteCnt {
+           for _ in 0..16-byte_cnt {
                print!("   ");
            }
-            let s = str::from_utf8(&strbuf[0..byteCnt]).unwrap().to_string();
+            let s = str::from_utf8(&strbuf[0..byte_cnt]).unwrap().to_string();
             println!(" {}", s);
            break;
        }
@@ -261,17 +261,17 @@ fn main() -> io::Result<()> {
     };
     //println!("{}", file);
     if !Path::new(file).exists() {
-        let wholeDir = &String::from("./");
+        let whole_dir = &String::from("./");
         if file.eq(&star) {
-            file = wholeDir;
+            file = whole_dir;
         }
         let paths = fs::read_dir(file).unwrap();
-        let mut pathsVer = Vec::<PathBuf>::new();
+        let mut paths_ver = Vec::<PathBuf>::new();
    
         for (i, path) in paths.enumerate() {
-            pathsVer.push(path.unwrap().path());
+            paths_ver.push(path.unwrap().path());
             
-            println!("{}: {}", i, pathsVer.last().unwrap().display());
+            println!("{}: {}", i, paths_ver.last().unwrap().display());
         }
        
         print!("Enter a number of an entry? ");
@@ -281,18 +281,18 @@ fn main() -> io::Result<()> {
         let num : usize = line.trim().parse()
             .expect("Please enter number");
         
-         if num < pathsVer.len()  {
+         if num < paths_ver.len()  {
          
-           // println!("Selected file : {:?}", pathsVer[num]);
-            let file2 = pathsVer[num].as_path().display().to_string(); // into_os_string().into_string().unwrap()
+           // println!("Selected file : {:?}", paths_ver[num]);
+            let file2 = paths_ver[num].as_path().display().to_string(); // into_os_string().into_string().unwrap()
             println!("Selected file : {}", file2);
             
-            return dumpFile(&file2);
+            return dump_file(&file2);
         } else {
             println!("Invalid entry - {}", num);
         }
     } else {
-        return dumpFile(&file);
+        return dump_file(&file);
     }
     Err(Error::new(ErrorKind::Other, "Invalid file"))
 }
