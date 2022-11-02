@@ -116,13 +116,13 @@ fn big_endian_read_u64(buf: &[u8]) -> u64 {
 }
 
 fn dump_file(path : &str) -> io::Result<()> {
-    let mut buf = [0; 256];
+    let mut buf = [0_u8; 256];
     let mut strbuf = [0; 16];
    // let mut f = File::open(file2.to_owned().into());
    //let mut f = io::Cursor::<Vec<u8>>::new(file2.to_owned().into());
    let mut f = File::open(path)?;
-   let mut remain : i64 = 0;
-   let mut offset = 0;
+   let mut remain : usize = 0;
+   let mut offset : usize = 0;
    let mut counter : u64 = 0;
    let mut byte_cnt = 0;
    let mut page_cnt = 0;
@@ -133,8 +133,7 @@ fn dump_file(path : &str) -> io::Result<()> {
    loop {
        if remain > 0 {
            // print remaining
-           for byte in &buf {  // buf[offset..offset+remain]
-                
+           for byte in &buf[offset..offset+remain] { 
                 if byte_cnt == 0 {
                     if format1 == Format::Hex {
                         print!("\n{:0>8x}: ", counter);
@@ -145,91 +144,82 @@ fn dump_file(path : &str) -> io::Result<()> {
                     }
                     page_cnt += 1;
                 }
-               if offset == 0 {
-                    print!("{:02X} ", byte);
-                    match byte {
-                        0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c | 0x0b => strbuf[byte_cnt] = 0x2e,
-                        _ => strbuf[byte_cnt] = *byte,
-                    }
-                    //strbuf[byte_cnt] = byte;
-                    remain -= 1;
-                    byte_cnt += 1;
-                    if byte_cnt == 16 {
-                        byte_cnt = 0;
-                        match format2 {
-                           Display::A => {
-                               //  let s = str::from_utf8(&strbuf).unwrap().to_string();
-                                let s = String::from_utf8_lossy(&strbuf);
-                                //let s = String::from_utf8(strbuf.to_vec()).expect("Found invalid UTF-8");
-                                 print!(" {}", s);
-                           } ,
-                           Display::S16 => {
-                               for ss in 0..8 {
-                                   match format3 {
-                                       Ending::BE => {
-                                           print!("{:<6} ", big_endian_read_u16(&strbuf[ss*2..ss*2+2]));
-                                       } ,
-                                        Ending::LE => {
-                                           print!("{:<6} ", little_endian_read_u16(&strbuf[ss*2..ss*2+2]));
-                                       }
-                                  }   
-                               }
-                           },
-                           Display::S32 => {
-                               for ss in 0..4 {
-                                   match format3 {
-                                      Ending::BE => {
-                                           print!("{:<10} ", big_endian_read_u32(&strbuf[ss*4..ss*4+4]));
-                                       } ,
-                                        Ending::LE => {
-                                           print!("{:<10} ", little_endian_read_u32(&strbuf[ss*4..ss*4+4]));
-                                       }
-                                  }   
-                               }
-                           },
-                           Display::S64 => {
-                               for ss in 0..2 {
-                                   match format3 {
-                                       Ending::BE => {
-                                           print!("{:<14} ", big_endian_read_u64(&strbuf[ss*8..ss*8+8]));
-                                       } ,
-                                        Ending::LE => {
-                                           print!("{:<14} ", little_endian_read_u64(&strbuf[ss*8..ss*8+8]));
-                                       }
-                                  }   
-                               }
-                           },
-                        }
-                      
-                        
-                        if page_cnt == PAGESIZE {
-                           page_cnt = 0;
-                           let cmd = cmd_proc();
-                           match cmd {
-                               Cmd::Next => (),
-                               Cmd::Quit => return Ok(()),
-                               Cmd::Pos{offset} => { 
-                                  counter = offset;
-                                  counter -= 1;
-                                  f.seek(SeekFrom::Start(counter))?;
-                                  remain = 0;
-                                  byte_cnt = 0;
-                                },
-                               Cmd::Format{format} => format1 = format,
-                               Cmd::Display(d, e) => {format2 = d; format3 = e}
-                           }
-                        }
-                    }
-                    counter += 1;
-                    if remain == 0 {
-                        break;
-                    }
-                } else {
-                    offset -= 1;
+              
+                print!("{:02X} ", byte);
+                match byte {
+                    0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c | 0x0b => strbuf[byte_cnt] = 0x2e,
+                    _ => strbuf[byte_cnt] = *byte,
                 }
+                //strbuf[byte_cnt] = byte;
+                byte_cnt += 1;
+                if byte_cnt == 16 {
+                    byte_cnt = 0;
+                    match format2 {
+                       Display::A => {
+                           //  let s = str::from_utf8(&strbuf).unwrap().to_string();
+                            let s = String::from_utf8_lossy(&strbuf);
+                            //let s = String::from_utf8(strbuf.to_vec()).expect("Found invalid UTF-8");
+                             print!(" {}", s);
+                       } ,
+                       Display::S16 => {
+                           for ss in 0..8 {
+                               match format3 {
+                                   Ending::BE => {
+                                       print!("{:<6} ", big_endian_read_u16(&strbuf[ss*2..ss*2+2]));
+                                   } ,
+                                    Ending::LE => {
+                                       print!("{:<6} ", little_endian_read_u16(&strbuf[ss*2..ss*2+2]));
+                                   }
+                              }   
+                           }
+                       },
+                       Display::S32 => {
+                           for ss in 0..4 {
+                               match format3 {
+                                  Ending::BE => {
+                                       print!("{:<10} ", big_endian_read_u32(&strbuf[ss*4..ss*4+4]));
+                                   } ,
+                                    Ending::LE => {
+                                       print!("{:<10} ", little_endian_read_u32(&strbuf[ss*4..ss*4+4]));
+                                   }
+                              }   
+                           }
+                       },
+                       Display::S64 => {
+                           for ss in 0..2 {
+                               match format3 {
+                                   Ending::BE => {
+                                       print!("{:<14} ", big_endian_read_u64(&strbuf[ss*8..ss*8+8]));
+                                   } ,
+                                    Ending::LE => {
+                                       print!("{:<14} ", little_endian_read_u64(&strbuf[ss*8..ss*8+8]));
+                                   }
+                              }   
+                           }
+                       },
+                    }
+                  
+                    if page_cnt == PAGESIZE {
+                       page_cnt = 0;
+                       let cmd = cmd_proc();
+                       match cmd {
+                           Cmd::Next => (),
+                           Cmd::Quit => return Ok(()),
+                           Cmd::Pos{offset} => { 
+                              counter = offset;
+                              counter -= 1;
+                              f.seek(SeekFrom::Start(counter))?;
+                              byte_cnt = 0;
+                            },
+                           Cmd::Format{format} => format1 = format,
+                           Cmd::Display(d, e) => {format2 = d; format3 = e}
+                       }
+                    }
+                }
+                counter += 1;
             }
        }
-       let n = f.read(&mut buf[..])?; // .expect("failed to create file").
+       let n = f.read(&mut buf[..])?; // .expect("failed to read file").
       // println!("Read - {}", n);
        if n == 0 {
            //println!("eof");
@@ -241,7 +231,7 @@ fn dump_file(path : &str) -> io::Result<()> {
            break;
        }
 
-       remain = n as i64;
+       remain = n ;
        offset = 0;
        
     }
