@@ -148,7 +148,7 @@ fn dump_file(path : &str) -> io::Result<()> {
                if offset == 0 {
                     print!("{:02X} ", byte);
                     match byte {
-                        0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c => strbuf[byte_cnt] = 0x2e,
+                        0x0a | 0x0d | 0x1b | 0x07 | 0x08 | 0x09 | 0x0c | 0x0b => strbuf[byte_cnt] = 0x2e,
                         _ => strbuf[byte_cnt] = *byte,
                     }
                     //strbuf[byte_cnt] = byte;
