@@ -40,6 +40,8 @@ pub enum Cmd {
 
 const PAGESIZE : u32 = 100;
 
+macro_rules! U64FORMAT { () => { "{:<14} " }; }
+
 fn cmd_proc() -> Cmd {
     io::stdout().flush().unwrap();
     print!("\n\x1b[1;32mEnter a command <ENTER> - next, Onnnn - move to the offset, F[D|H|O] - display format, N[1|3|6|a][l|b], q - exit :  \x1b[0m");
@@ -189,10 +191,10 @@ fn dump_file(path : &str) -> io::Result<()> {
                            for ss in 0..2 {
                                match format3 {
                                    Ending::BE => {
-                                       print!("{:<14} ", big_endian_read_u64(&strbuf[ss*8..ss*8+8]));
+                                       print!(U64FORMAT!(), big_endian_read_u64(&strbuf[ss*8..ss*8+8]));
                                    } ,
                                     Ending::LE => {
-                                       print!("{:<14} ", little_endian_read_u64(&strbuf[ss*8..ss*8+8]));
+                                       print!(U64FORMAT!(), little_endian_read_u64(&strbuf[ss*8..ss*8+8]));
                                    }
                               }   
                            }
