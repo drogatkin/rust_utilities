@@ -21,8 +21,9 @@ pub enum Display {
     A,
 }
 
+#[derive(Copy, Clone)]
 pub enum Ending {
-  BE,
+  BE = 0,
   LE
 }
 
@@ -120,6 +121,7 @@ fn big_endian_read_u64(buf: &[u8]) -> u64 {
 fn dump_file(path : &str) -> io::Result<()> {
     let mut buf = [0_u8; 256];
     let mut strbuf = [0; 16];
+    let endian_selector32 : [fn(buf: &[u8]) -> u32; 2]= [big_endian_read_u32, little_endian_read_u32];
    // let mut f = File::open(file2.to_owned().into());
    //let mut f = io::Cursor::<Vec<u8>>::new(file2.to_owned().into());
    let mut f = File::open(path)?;
@@ -177,14 +179,7 @@ fn dump_file(path : &str) -> io::Result<()> {
                        },
                        Display::S32 => {
                            for ss in 0..4 {
-                               match format3 {
-                                  Ending::BE => {
-                                       print!("{:<10} ", big_endian_read_u32(&strbuf[ss*4..ss*4+4]));
-                                   } ,
-                                    Ending::LE => {
-                                       print!("{:<10} ", little_endian_read_u32(&strbuf[ss*4..ss*4+4]));
-                                   }
-                              }   
+                                print!("{:<10} ", endian_selector32[format3 as usize](&strbuf[ss*4..ss*4+4]));
                            }
                        },
                        Display::S64 => {
