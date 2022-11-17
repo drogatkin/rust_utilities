@@ -18,20 +18,48 @@
       </operator>
     </expression-->
  
-  <target name="build" dir=".">
-      <dependency>
+    <target name="version update" dir=".">
+        <dependency>
            <function name="allnewer">
-              <parameter variable="src"/>
+              <parameter value="./*.rs"/>
               <parameter value="&project;" />
            </function>
-    </dependency>
+       </dependency>
+       <dependency>
+           <expression>
+              <operator name="eq">
+                <function name ="timestamp">
+                   <parameter value="ver.rs"/>
+                </function>
+                <value/>
+              </operator>
+          </expression>
+     </dependency>
+     <block>
+         <echo>Generating ver.rs</echo>
+       <function name="write">
+         <parameter value="ver.rs" type="file"/>
+         <parameter>// auto generated
+pub fn version() -> (&amp;'static str, u32, &amp;'static str) {
+      (&amp;&quot;1.00.01&quot;, 1, &amp;&quot;</parameter>
+         <parameter>
+             <function name="now"/>
+         </parameter>
+         <parameter>&quot;)
+}</parameter>       
+       </function>
+      </block>
+    </target>
+    
+  <target name="build" dir=".">
+     <dependency target="version update" />
     <dependency>
            <function name="allnewer">
               <parameter value="bee-rust.xml" />
               <parameter value="&project;" />
            </function>
     </dependency>
-      <echo>Compiling...</echo>
+      <echo>Compiling ${src} ...</echo>
       <task exec="RUSTC">
        <parameter value="-o"/>
        <parameter value="&project;"/>

@@ -8,6 +8,7 @@ use std::str;
 use std::io::{Error, ErrorKind};
 
 mod help;
+mod ver;
 
 enum CmdOption {
      HELP,
@@ -16,30 +17,47 @@ enum CmdOption {
 
 }
 
-fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<String>, Vec<String>) {
-     let mut result = (Vec::new(), Vec::new(), Vec::new());
+fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<&String>) {
+     let (mut options, mut targets, mut run_args) = (Vec::new(), Vec::new(), Vec::new());
      let mut arg_n = 0;
+     let mut mode_self = true;
      while arg_n < args.len() {
          let arg = &args[arg_n] ;
          //println!("analizing {}", arg);
-         if arg.starts_with("-h") {
-            result.0.push(CmdOption::HELP);
-         } else if arg.starts_with("-v") {
-            result.0.push(CmdOption::VERSION);
+         if mode_self {
+            if arg.starts_with("-h") {
+               options.push(CmdOption::HELP);
+            } else if arg.starts_with("-f") {
+
+            } else if arg.starts_with("-v") {
+               options.push(CmdOption::VERSION);
+            } else if arg == "--" {
+               mode_self = false;
+            }
+            
+         } else {
+          run_args.push(arg);
          }
+         
          arg_n += 1;
      }
-     result
+     (options, targets, run_args)
 }
 
 fn main() -> io::Result<()> {
-     println!("RustBee (rb) v 1.0 (c) Copyright {} D. Rogatkin", 2022);
+     println!("RustBee (rb) v 1.0 D. Rogatkin (c) Copyright {}", 2022);
      
      let args: Vec<String> = env::args().collect();
-     let cmd = parse_command(&args);
-     for opt in cmd.0 {
+     let (options, targets, run_args) = parse_command(&args);
+     for opt in options {
+         
           match opt {
+               VERSION => {
+                    let (ver, build, date) = ver::version();
+                    println!("RB version: {}, build: {} on {}", ver, build, date);
+               },
                HELP => println!("{}", help::get_help()),
+               
                _ => {}
           }
      }
