@@ -10,6 +10,7 @@ use std::io::{Error, ErrorKind};
 mod help;
 mod ver;
 
+#[derive(Debug)]
 enum CmdOption {
      HELP,
      ScriptFile(String),
@@ -17,27 +18,29 @@ enum CmdOption {
 
 }
 
-fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<&String>) {
+fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<String>) {
      let (mut options, mut targets, mut run_args) = (Vec::new(), Vec::new(), Vec::new());
      let mut arg_n = 0;
-     let mut mode_self = true;
      while arg_n < args.len() {
          let arg = &args[arg_n] ;
          //println!("analizing {}", arg);
-         if mode_self {
-            if arg.starts_with("-h") {
-               options.push(CmdOption::HELP);
-            } else if arg.starts_with("-f") {
-
-            } else if arg.starts_with("-v") {
-               options.push(CmdOption::VERSION);
-            } else if arg == "--" {
-               mode_self = false;
-            }
-            
-         } else {
-          run_args.push(arg);
-         }
+          if arg.starts_with("-h") {
+              options.push(CmdOption::HELP);
+          } else if arg.starts_with("-f") {
+               arg_n += 1;
+               if arg_n < args.len() {
+                    options.push(CmdOption::ScriptFile(args[arg_n].to_string()));
+               } else {
+                    println!("No file path specified in -f option");
+               }
+          } else if arg.starts_with("-v") {
+            options.push(CmdOption::VERSION);
+          } else if arg == "--" {
+               arg_n += 1;
+               if arg_n < args.len() {
+                    run_args.extend_from_slice( &args[arg_n..]);
+               }
+          }
          
          arg_n += 1;
      }
@@ -50,14 +53,16 @@ fn main() -> io::Result<()> {
      let args: Vec<String> = env::args().collect();
      let (options, targets, run_args) = parse_command(&args);
      for opt in options {
-         
+          //println!("{:?}", opt);
           match opt {
-               VERSION => {
+               CmdOption::VERSION => {
                     let (ver, build, date) = ver::version();
                     println!("RB version: {}, build: {} on {}", ver, build, date);
                },
-               HELP => println!("{}", help::get_help()),
-               
+               CmdOption::HELP => println!("{}", help::get_help()),
+               CmdOption::ScriptFile(file) => {
+                    println!("Script {}", file);
+               },
                _ => {}
           }
      }
