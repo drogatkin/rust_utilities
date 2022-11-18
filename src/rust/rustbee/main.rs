@@ -1,11 +1,12 @@
 use std::fs;
 use std::env;
 use std::path::Path;
-use std::path::PathBuf;
-use std::io::{self, Write, prelude::*, SeekFrom};
-use std::fs::File;
-use std::str;
+//use std::path::PathBuf;
+use std::io::{self, Write};
+//use std::fs::File;
+//use std::str;
 use std::io::{Error, ErrorKind};
+//use regex::Regex;
 
 mod help;
 mod ver;
@@ -15,7 +16,9 @@ enum CmdOption {
      HELP,
      ScriptFile(String),
      VERSION,
-
+     VERBOSE,
+     SearchUp(String),
+     DIAGNOSTICS
 }
 
 fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<String>) {
@@ -26,15 +29,27 @@ fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<Strin
          //println!("analizing {}", arg);
           if arg.starts_with("-h") {
               options.push(CmdOption::HELP);
-          } else if arg.starts_with("-f") {
+          } else if arg == &"-f" || arg.starts_with("-file"){
                arg_n += 1;
                if arg_n < args.len() {
                     options.push(CmdOption::ScriptFile(args[arg_n].to_string()));
                } else {
-                    println!("No file path specified in -f option");
+                    println!("No file path specified in -file option");
                }
-          } else if arg.starts_with("-v") {
+          } else if arg.starts_with("-s") || arg.starts_with("-find") {
+               arg_n += 1;
+               if arg_n < args.len() {
+                    options.push(CmdOption::SearchUp(args[arg_n].to_string()));
+               } else {
+                    options.push(CmdOption::SearchUp("_".to_string()));
+                    break;
+               }
+          } else if arg.starts_with("-version") {
             options.push(CmdOption::VERSION);
+          } else if arg.starts_with("-v") || arg.starts_with("-verbose") {
+               options.push(CmdOption::VERBOSE);
+          } else if arg.starts_with("-d") || arg.starts_with("-diagnostic") {
+               options.push(CmdOption::DIAGNOSTICS);
           } else if arg == "--" {
                arg_n += 1;
                if arg_n < args.len() {
@@ -47,9 +62,13 @@ fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<Strin
      (options, targets, run_args)
 }
 
+static mut DIAGNOSTICS: bool = false;
+
+static mut VERBOSE: bool = false;
+
 fn main() -> io::Result<()> {
      println!("RustBee (rb) v 1.0 D. Rogatkin (c) Copyright {}", 2022);
-     
+     let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
      let (options, targets, run_args) = parse_command(&args);
      for opt in options {
@@ -60,11 +79,42 @@ fn main() -> io::Result<()> {
                     println!("RB version: {}, build: {} on {}", ver, build, date);
                },
                CmdOption::HELP => println!("{}", help::get_help()),
-               CmdOption::ScriptFile(file) => {
-                    println!("Script {}", file);
+               CmdOption::VERBOSE => {
+                    unsafe {VERBOSE = true;}
                },
-               _ => {}
+               CmdOption::DIAGNOSTICS => {
+                    unsafe {DIAGNOSTICS = true;}
+               },
+               CmdOption::ScriptFile(file) => {
+                    unsafe {
+                         if VERBOSE {
+                              println!("Script: {}", file);
+                         }
+                    }
+                    
+                    path = file.to_string();
+               },
+               _ => ()
           }
+     }
+     if path == "_" {
+          let paths = fs::read_dir(&"./").unwrap();
+          //let re = Regex::new(r"bee.*\.rb").unwrap(); if re.is_match(file_path)
+          for (_i, path1) in paths.enumerate() {
+               let file_path = path1.unwrap().path().display().to_string();
+               if file_path.starts_with("bee") && file_path.ends_with(".rb") {
+                    path = file_path.to_string();
+                    break;
+               }
+          }
+          if path == "_" {
+               //println!("No script file not found in ./");
+             return Err(Error::new(ErrorKind::Other,"No script file not found in ./"));
+           }
+     }
+     if !Path::new(&path).exists() {
+          //println!("File {} not found", path);
+          return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
      io::stdout().flush()?;
      Ok(())
