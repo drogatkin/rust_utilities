@@ -3,13 +3,16 @@ use std::env;
 use std::path::Path;
 //use std::path::PathBuf;
 use std::io::{self, Write};
-//use std::fs::File;
+// use std::fs::File;
 //use std::str;
 use std::io::{Error, ErrorKind};
+use log::Log;
 //use regex::Regex;
 
 mod help;
 mod ver;
+mod log;
+mod lex;
 
 #[derive(Debug)]
 enum CmdOption {
@@ -55,6 +58,8 @@ fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<Strin
                if arg_n < args.len() {
                     run_args.extend_from_slice( &args[arg_n..]);
                }
+          } else {
+               targets.push(arg);
           }
          
          arg_n += 1;
@@ -62,12 +67,13 @@ fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<Strin
      (options, targets, run_args)
 }
 
-static mut DIAGNOSTICS: bool = false;
-
-static mut VERBOSE: bool = false;
+fn is_bee_scrpt(file_path: &str) -> bool {
+     file_path.starts_with("bee") && file_path.ends_with(".rb") 
+}
 
 fn main() -> io::Result<()> {
      println!("RustBee (rb) v 1.0 D. Rogatkin (c) Copyright {}", 2022);
+     let mut log = Log {debug : false, verbose : false};
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
      let (options, targets, run_args) = parse_command(&args);
@@ -79,20 +85,16 @@ fn main() -> io::Result<()> {
                     println!("RB version: {}, build: {} on {}", ver, build, date);
                },
                CmdOption::HELP => println!("{}", help::get_help()),
-               CmdOption::VERBOSE => {
-                    unsafe {VERBOSE = true;}
-               },
-               CmdOption::DIAGNOSTICS => {
-                    unsafe {DIAGNOSTICS = true;}
-               },
+               CmdOption::VERBOSE => log.verbose = true,
+               CmdOption::DIAGNOSTICS => log.debug = true,
                CmdOption::ScriptFile(file) => {
-                    unsafe {
-                         if VERBOSE {
-                              println!("Script: {}", file);
-                         }
-                    }
+                    log.log(&format!("Script: {}", file));
                     
                     path = file.to_string();
+               },
+               CmdOption::SearchUp(file) => {
+                    log.log(&format!("Search: {}", file));
+
                },
                _ => ()
           }
@@ -102,7 +104,7 @@ fn main() -> io::Result<()> {
           //let re = Regex::new(r"bee.*\.rb").unwrap(); if re.is_match(file_path)
           for (_i, path1) in paths.enumerate() {
                let file_path = path1.unwrap().path().display().to_string();
-               if file_path.starts_with("bee") && file_path.ends_with(".rb") {
+               if is_bee_scrpt(&file_path) {
                     path = file_path.to_string();
                     break;
                }
@@ -116,6 +118,7 @@ fn main() -> io::Result<()> {
           //println!("File {} not found", path);
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
+     lex::process(&path)?;
      io::stdout().flush()?;
      Ok(())
 }
