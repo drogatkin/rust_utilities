@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
           //println!("File {} not found", path);
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
-     lex::process(&path)?;
+     lex::process(&log, &path, &run_args)?;
      io::stdout().flush()?;
      Ok(())
 }
