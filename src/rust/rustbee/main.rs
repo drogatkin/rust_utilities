@@ -16,22 +16,23 @@ mod lex;
 
 #[derive(Debug)]
 enum CmdOption {
-     HELP,
+     Help,
      ScriptFile(String),
-     VERSION,
-     VERBOSE,
+     Version,
+     Verbose,
      SearchUp(String),
-     DIAGNOSTICS
+     PropertyFile(String),
+     Diagnostics
 }
 
-fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<String>) {
+fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Vec<&'a String>, Vec<String>) {
      let (mut options, mut targets, mut run_args) = (Vec::new(), Vec::new(), Vec::new());
      let mut arg_n = 0;
      while arg_n < args.len() {
          let arg = &args[arg_n] ;
          //println!("analizing {}", arg);
           if arg.starts_with("-h") {
-              options.push(CmdOption::HELP);
+              options.push(CmdOption::Help);
           } else if arg == &"-f" || arg.starts_with("-file"){
                arg_n += 1;
                if arg_n < args.len() {
@@ -48,12 +49,20 @@ fn parse_command(args: &Vec<String>) -> (Vec<CmdOption>, Vec<&String>, Vec<Strin
                     break;
                }
           } else if arg.starts_with("-version") {
-            options.push(CmdOption::VERSION);
+            options.push(CmdOption::Version);
           } else if arg.starts_with("-v") || arg.starts_with("-verbose") {
-               options.push(CmdOption::VERBOSE);
+               options.push(CmdOption::Verbose);
           } else if arg.starts_with("-d") || arg.starts_with("-diagnostic") {
-               options.push(CmdOption::DIAGNOSTICS);
-          } else if arg == "--" {
+               options.push(CmdOption::Diagnostics);
+          } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
+               arg_n += 1;
+               if arg_n < args.len() {
+                    options.push(CmdOption::PropertyFile(args[arg_n].to_string()));
+               } else {
+                   // log.log(&"Error: Property file isn't specified".to_string());
+                    break;
+               }
+          } else if arg == "--" { 
                arg_n += 1;
                if arg_n < args.len() {
                     run_args.extend_from_slice( &args[arg_n..]);
@@ -76,17 +85,17 @@ fn main() -> io::Result<()> {
      let mut log = Log {debug : false, verbose : false};
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
-     let (options, targets, run_args) = parse_command(&args);
+     let (options, targets, run_args) = parse_command( &log, &args);
      for opt in options {
           //println!("{:?}", opt);
           match opt {
-               CmdOption::VERSION => {
+               CmdOption::Version => {
                     let (ver, build, date) = ver::version();
-                    println!("RB version: {}, build: {} on {}", ver, build, date);
+                    println!("RB Version: {}, build: {} on {}", ver, build, date);
                },
-               CmdOption::HELP => println!("{}", help::get_help()),
-               CmdOption::VERBOSE => log.verbose = true,
-               CmdOption::DIAGNOSTICS => log.debug = true,
+               CmdOption::Help => println!("{}", help::get_help()),
+               CmdOption::Verbose => log.verbose = true,
+               CmdOption::Diagnostics => log.debug = true,
                CmdOption::ScriptFile(file) => {
                     log.log(&format!("Script: {}", file));
                     

@@ -27,6 +27,8 @@ enum LexState {
     InLex,
     InQtLex,
     Escape,
+    RangeOrTypeOrEnd,
+    RangeStart,
     End
 }
 
@@ -78,8 +80,14 @@ fn read_lex(reader: &mut Reader) -> LEXEM {
                         buf_fill += 1;
                     },
                     LexState::InQtLex => {
-
+                        let lexstr: String = buffer[0..buf_fill].iter().collect();
+                        state = LexState::RangeOrTypeOrEnd;
                     },
+                    LexState::Escape => {
+                        state = LexState::InQtLex ;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    }
                     _ => todo!()
                 }
                 
@@ -91,6 +99,10 @@ fn read_lex(reader: &mut Reader) -> LEXEM {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                         state = LexState::InQtLex;
+                    },
+                    LexState::InLex => {
+                        state = LexState::RangeOrTypeOrEnd;
+                        let lexstr: String = buffer[0..buf_fill].iter().collect();
                     },
                     _ => todo!()
                 }
@@ -109,8 +121,34 @@ fn read_lex(reader: &mut Reader) -> LEXEM {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::End => break
+                    LexState::End => break,
+                    _ => todo!()
                 }
+            },
+            '[' => {
+                match state {
+                    LexState::RangeOrTypeOrEnd => state = LexState::RangeStart,
+                    LexState::InQtLex => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::InLex => {
+                        state = LexState::RangeStart;
+                        
+                        let lexstr: String = buffer[0..buf_fill].iter().collect();
+                        
+                    },
+                    _ => todo!()
+                }
+            },
+            ']' => {
+
+            },
+            ':' => {
+
+            },
+            '=' => {
+
             },
             _ => todo!()
         }
