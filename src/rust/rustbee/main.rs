@@ -57,9 +57,14 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
           } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
                arg_n += 1;
                if arg_n < args.len() {
+                    if args[arg_n].starts_with("-") {
+                         log.error(&"No property file specified");
+                         arg_n -= 1;
+                         continue;
+                    }
                     options.push(CmdOption::PropertyFile(args[arg_n].to_string()));
                } else {
-                   // log.log(&"Error: Property file isn't specified".to_string());
+                    log.error(&"Property file isn't specified".to_string());
                     break;
                }
           } else if arg == "--" { 

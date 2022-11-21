@@ -12,12 +12,13 @@ const MAX_LEX_LEN: usize = 4096;
 enum LEXEM {
     Variable(String, String, String), // name:type:range_constraint
     Value(String), 
+    EOF
 }
 
 #[derive(PartialEq)]
 enum State {
-    BEGIN,
-    END
+    Begin,
+    End
 }
 
 #[derive(PartialEq)]
@@ -65,7 +66,7 @@ fn open(file: &str) -> io::Result<Reader> {
     Ok(res)
 }
 
-fn read_lex(reader: &mut Reader) -> LEXEM {
+fn read_lex(log: &Log, reader: &mut Reader) -> LEXEM {
     let mut buffer : [char; MAX_LEX_LEN] = [' '; MAX_LEX_LEN];
     let mut buf_fill: usize = 0;
     let mut c1 = reader.next();
@@ -150,9 +151,51 @@ fn read_lex(reader: &mut Reader) -> LEXEM {
             '=' => {
 
             },
-            _ => todo!()
+            '(' => {
+
+            },
+            ')' => {
+
+            },
+            '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
+
+            },
+            '.' => {
+
+            },
+            _ => {
+                match state {
+                    LexState::InQtLex => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::InLex => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::Begin => {
+                        state = LexState::InLex;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    _ => todo!()
+                }
+            }
         }
         c1 = reader.next();
+    }
+    match state {
+        LexState::InQtLex => {
+            log.error(&"Unexpected ending of the script file in quoted token");
+            return LEXEM::EOF;
+        },
+        LexState::InLex => {
+            
+        },
+        LexState::Begin => {
+            
+        },
+        _ => todo!()
     }
     LEXEM::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string())
 }
@@ -162,11 +205,11 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
         Err(e) => return Err(e),
         Ok(r) => r,
     };
-    let mut state = State::BEGIN;
-    while state != State::END {
+    let mut state = State::Begin;
+    while state != State::End {
         match state {
-            State::BEGIN => {
-                let mut lex = read_lex(&mut all_chars);
+            State::Begin => {
+                let mut lex = read_lex(log, &mut all_chars);
             },
             _ => ()
         }
