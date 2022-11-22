@@ -1,0 +1,57 @@
+# a script example to build Java project 
+
+env =./env.bee
+project =bookshelf
+'build_directory' = ./build
+source_directory ="src/java"
+build_file ="${project}.jar"
+ mobile= "y"
+ domain ="com"
+org ="walletwizz"
+manifestf =""
+org_path= "walletwizz"
+wizard :path= "file:/home/dmitriy/projects/Webbee/build/wizard.xml"
+main_class ="${domain}${org}${project}.Main"
+webapp_file ="${project}.war"
+projects_root= ""
+
+build_dir{} = ./
+build_dirs[] = build1,build2,build3
+prop_name_:env=home
+
+display(build of ${project})
+
+expression javac {
+   ${JAVA_HOME}/bin/javac
+}
+
+expression java sources {
+    newerwithdependency(${source_directory}/${domain}/.java, ${build_directory}/${domain}/.class,,${domain})
+}
+
+target check build : build_directory {
+   dependency {
+        target(check build)
+        variable(mobile)
+        expression()
+   }
+   {
+       exec javac::  (
+           -classpath,
+           ${class path},
+       )
+   }
+}
+
+target run :: {
+    dependency {
+        target(check build)
+    }
+    {
+        execname=./${project}
+        param1=${~#args#~}[0]
+        exec execname (
+            param1
+       )
+   }
+}

@@ -86,7 +86,7 @@ fn is_bee_scrpt(file_path: &str) -> bool {
 }
 
 fn main() -> io::Result<()> {
-     println!("RustBee (rb) v 1.0 D. Rogatkin (c) Copyright {}", 2022);
+     println!("RustBee (rb) v 1.0 (c) Copyright {} D. Rogatkin", 2022);
      let mut log = Log {debug : false, verbose : false};
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();

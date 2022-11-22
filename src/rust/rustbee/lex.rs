@@ -9,19 +9,14 @@ const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
 
-enum LEXEM {
+enum Lexem {
     Variable(String, String, String), // name:type:range_constraint
     Value(String), 
+
     EOF
 }
 
-#[derive(PartialEq)]
-enum State {
-    Begin,
-    End
-}
-
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 enum LexState {
     Begin,
     QuotedStart,
@@ -66,11 +61,12 @@ fn open(file: &str) -> io::Result<Reader> {
     Ok(res)
 }
 
-fn read_lex(log: &Log, reader: &mut Reader) -> LEXEM {
+fn read_lex(log: &Log, reader: &mut Reader, state1: &LexState) -> (Lexem, LexState) {
     let mut buffer : [char; MAX_LEX_LEN] = [' '; MAX_LEX_LEN];
     let mut buf_fill: usize = 0;
     let mut c1 = reader.next();
-    let mut state = LexState::Begin;
+    //let mut state = LexState::Begin; //*state1;
+    let mut state = *state1;
     while let Some(c) = c1 {
         match c {
             '"' => {
@@ -187,7 +183,7 @@ fn read_lex(log: &Log, reader: &mut Reader) -> LEXEM {
     match state {
         LexState::InQtLex => {
             log.error(&"Unexpected ending of the script file in quoted token");
-            return LEXEM::EOF;
+            return (Lexem::EOF, state);
         },
         LexState::InLex => {
             
@@ -197,7 +193,7 @@ fn read_lex(log: &Log, reader: &mut Reader) -> LEXEM {
         },
         _ => todo!()
     }
-    LEXEM::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string())
+    (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state)
 }
 
 pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
@@ -205,11 +201,12 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
         Err(e) => return Err(e),
         Ok(r) => r,
     };
-    let mut state = State::Begin;
-    while state != State::End {
-        match state {
-            State::Begin => {
-                let mut lex = read_lex(log, &mut all_chars);
+    let mut state = LexState::Begin;
+    while state != LexState::End {
+        let (mut lex, state) = read_lex(log, &mut all_chars, &state);
+        match lex {
+            Lexem::EOF => {
+                
             },
             _ => ()
         }
