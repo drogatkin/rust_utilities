@@ -9,6 +9,7 @@ const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
 
+#[derive(PartialEq, Debug)]
 enum Lexem {
     Variable(String, String, String), // name:type:range_constraint
     Value(String), 
@@ -61,12 +62,12 @@ fn open(file: &str) -> io::Result<Reader> {
     Ok(res)
 }
 
-fn read_lex(log: &Log, reader: &mut Reader, state1: &LexState) -> (Lexem, LexState) {
+fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexState) {
     let mut buffer : [char; MAX_LEX_LEN] = [' '; MAX_LEX_LEN];
     let mut buf_fill: usize = 0;
     let mut c1 = reader.next();
     //let mut state = LexState::Begin; //*state1;
-    let mut state = *state1;
+    //let mut state = state1;
     while let Some(c) = c1 {
         match c {
             '"' => {
@@ -99,7 +100,8 @@ fn read_lex(log: &Log, reader: &mut Reader, state1: &LexState) -> (Lexem, LexSta
                     },
                     LexState::InLex => {
                         state = LexState::RangeOrTypeOrEnd;
-                        let lexstr: String = buffer[0..buf_fill].iter().collect();
+                        //let lexstr: String = buffer[0..buf_fill].iter().collect();
+                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
                     },
                     _ => todo!()
                 }
@@ -132,8 +134,8 @@ fn read_lex(log: &Log, reader: &mut Reader, state1: &LexState) -> (Lexem, LexSta
                     LexState::InLex => {
                         state = LexState::RangeStart;
                         
-                        let lexstr: String = buffer[0..buf_fill].iter().collect();
-                        
+                        //let lexstr: String = buffer[0..buf_fill].iter().collect();
+                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
                     },
                     _ => todo!()
                 }
@@ -203,13 +205,15 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
     };
     let mut state = LexState::Begin;
     while state != LexState::End {
-        let (mut lex, state) = read_lex(log, &mut all_chars, &state);
+        let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
+        log.debug(&format!("Lex: {:?}, state: {:?}", lex, state2));
         match lex {
             Lexem::EOF => {
                 
             },
             _ => ()
         }
+        state = LexState::End;
     }
     Ok(())
 }
