@@ -13,7 +13,7 @@ const MAX_LEX_LEN: usize = 4096;
 enum Lexem {
     Variable(String, String, String), // name:type:range_constraint
     Value(String), 
-
+    Comment(String),
     EOF
 }
 
@@ -26,6 +26,7 @@ enum LexState {
     Escape,
     RangeOrTypeOrEnd,
     RangeStart,
+    Comment,
     End
 }
 
@@ -85,7 +86,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::InQtLex ;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
-                    }
+                    },
+                    LexState::Comment => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!()
                 }
                 
@@ -102,6 +107,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::RangeOrTypeOrEnd;
                         //let lexstr: String = buffer[0..buf_fill].iter().collect();
                         return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
+                    },
+                    LexState::Comment => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
                     },
                     _ => todo!()
                 }
@@ -120,7 +129,32 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::Comment => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     LexState::End => break,
+                    _ => todo!()
+                }
+            },
+            '#' => {
+                match state {
+                    LexState::Begin => {
+                        state = LexState::Comment;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    _ => todo!()
+                }
+            },
+            '\n' | '\r' => {
+                match state {
+                    LexState::Comment => {
+                        state = LexState::Begin;
+                        return (Lexem::Comment(buffer[0..buf_fill].iter().collect()), state);
+                    },
+                    LexState::Begin => {
+                    },
                     _ => todo!()
                 }
             },
@@ -136,6 +170,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         
                         //let lexstr: String = buffer[0..buf_fill].iter().collect();
                         return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
+                    },
+                    LexState::Comment => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
                     },
                     _ => todo!()
                 }
@@ -176,6 +214,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::Comment => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!()
                 }
             }
@@ -211,9 +253,12 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
             Lexem::EOF => {
                 
             },
+            Lexem::Variable(name, type_it, range_it) => {
+                state = LexState::End;
+            },
             _ => ()
         }
-        state = LexState::End;
+        
     }
     Ok(())
 }
