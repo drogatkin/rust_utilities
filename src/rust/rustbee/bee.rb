@@ -3,5 +3,6 @@
 env =./env.rb
 project =bookshelf
 
+eval(${env})
 
 display(Build of ${project} with ${env})

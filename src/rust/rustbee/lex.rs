@@ -14,6 +14,10 @@ enum Lexem {
     Variable(String, String, String), // name:type:range_constraint
     Value(String), 
     Comment(String),
+    Type(String),
+    Range(usize, usize),
+    Function(String),
+    Parameter(String),
     EOF
 }
 
@@ -27,6 +31,14 @@ enum LexState {
     RangeOrTypeOrEnd,
     RangeStart,
     Comment,
+    InType,
+    StartValue,
+    InValue,
+    EndValue,
+    RangeEnd,
+    InParam,
+    StartParam,
+    EndFunction,
     End
 }
 
@@ -112,6 +124,19 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::RangeOrTypeOrEnd => {
+                        
+                    },
+                    LexState::StartValue => {
+
+                    },
+                    LexState::InValue => {
+                        state = LexState::EndValue;
+                        return (Lexem::Value(buffer[0..buf_fill].iter().collect()), state);
+                    },
+                    LexState::StartParam => {
+
+                    },
                     _ => todo!()
                 }
 
@@ -155,6 +180,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     },
                     LexState::Begin => {
                     },
+                    LexState::InValue => {
+                        state = LexState::Begin;
+                        return (Lexem::Value(buffer[0..buf_fill].iter().collect()), state);
+                    },
                     _ => todo!()
                 }
             },
@@ -182,21 +211,72 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
 
             },
             ':' => {
+                match state {
+                    LexState::RangeOrTypeOrEnd => {
+                        state = LexState::InType;
 
+                    },
+                    _ => todo!()
+                }
             },
             '=' => {
-
+                match state {
+                    LexState::InLex => {
+                        
+                        state = LexState::StartValue; 
+                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
+                    },
+                    LexState::RangeOrTypeOrEnd => {
+                        state = LexState::StartValue; 
+                        //return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
+                    },
+                    _ => todo!()
+                }
             },
-            '(' => {
-
+            '(' => { 
+                match state {
+                    LexState::InLex => {
+                        
+                        state = LexState::StartParam; 
+                        return (Lexem::Function(buffer[0..buf_fill].iter().collect()), state);
+                    },
+                    LexState::RangeOrTypeOrEnd => {
+                        state = LexState::StartParam; 
+                        return (Lexem::Function(buffer[0..buf_fill].iter().collect()), state);
+                    },
+                    _ => todo!()
+                }
             },
             ')' => {
-
+                match state {
+                    LexState::InParam => {
+                        
+                        state = LexState::EndFunction; 
+                        return (Lexem::Parameter(buffer[0..buf_fill].iter().collect()), state);
+                    },
+                    LexState::StartParam => {
+                        state = LexState::EndFunction; 
+                        return (Lexem::Parameter(buffer[0..buf_fill].iter().collect()), state);
+                    },
+                    _ => todo!()
+                }
             },
             '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
 
             },
             '.' => {
+                match state {
+                    LexState::InValue => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::StartValue => {
+                        state = LexState::InValue;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    _ => todo!()
+                }
 
             },
             _ => {
@@ -215,6 +295,24 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buf_fill += 1;
                     },
                     LexState::Comment => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::InType => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::InValue => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::StartValue => {
+                        state = LexState::InValue;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::StartParam | LexState::InParam => {
+                        state = LexState::InParam;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -251,14 +349,17 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
         log.debug(&format!("Lex: {:?}, state: {:?}", lex, state2));
         match lex {
             Lexem::EOF => {
-                
+                state = LexState::End;
             },
             Lexem::Variable(name, type_it, range_it) => {
+                
+            },
+            Lexem::Value(value) => {
                 state = LexState::End;
             },
             _ => ()
         }
-        
+        state = state2;
     }
     Ok(())
 }
