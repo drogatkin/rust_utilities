@@ -127,6 +127,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     LexState::RangeOrTypeOrEnd => {
                         
                     },
+                    LexState::InParam => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     LexState::StartValue => {
 
                     },
@@ -184,6 +188,9 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::Begin;
                         return (Lexem::Value(buffer[0..buf_fill].iter().collect()), state);
                     },
+                    LexState::EndFunction => {
+                        state = LexState::Begin; 
+                    },
                     _ => todo!()
                 }
             },
@@ -208,6 +215,9 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                 }
             },
             ']' => {
+
+            },
+            ';' => {
 
             },
             ':' => {
@@ -327,6 +337,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             log.error(&"Unexpected ending of the script file in quoted token");
             return (Lexem::EOF, state);
         },
+        LexState::EndFunction => {
+            //state = 
+            return (Lexem::EOF, state);
+        },
         LexState::InLex => {
             
         },
@@ -336,6 +350,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
         _ => todo!()
     }
     (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state)
+}
+
+fn process_template_value(log: &Log, value : &str) -> Box<String>{
+    let ret = String::from("res");
+    Box::new(ret)
 }
 
 pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
@@ -349,7 +368,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
         log.debug(&format!("Lex: {:?}, state: {:?}", lex, state2));
         match lex {
             Lexem::EOF => {
-                state = LexState::End;
+                state2 = LexState::End;
             },
             Lexem::Variable(name, type_it, range_it) => {
                 
