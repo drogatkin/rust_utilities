@@ -2,12 +2,29 @@
 //use std::io::{BufRead, BufReader};
 use std::fs::File;
 use std::io::{self, Read};
+use std::collections::HashMap;
 
 use log::Log;
 
 const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
+
+pub enum VarType {
+    Generic,
+    Property,
+    Directory,
+    Path,
+    Array,
+    File,
+    Environment,
+    Number,
+    Date,
+    Eval,
+    Url,
+    RepositoryMaven,
+    RepositoryRust
+}
 
 #[derive(PartialEq, Debug)]
 enum Lexem {
@@ -40,6 +57,22 @@ enum LexState {
     StartParam,
     EndFunction,
     End
+}
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+enum TemplateState {
+    InVal,
+    VarStart,  // $
+    LeftBrack,
+    RightBrack,
+    InVar,
+}
+
+pub struct Block {
+    name: String,
+    block_type: VarType,
+    value: String,
+    values: [String],
 }
 
 pub struct Reader {
@@ -352,9 +385,109 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
     (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state)
 }
 
-fn process_template_value(log: &Log, value : &str) -> Box<String>{
-    let ret = String::from("res");
-    Box::new(ret)
+fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, String>) -> Box<String> {
+    let mut buf = [' ';4096* 12];
+    let mut buf_var = [' ';128]; // buf for var name
+    let mut name_pos = 0;
+    let chars = value.chars();
+    let mut pos = 0;
+    let mut state = TemplateState::InVal;
+    for c in chars {
+        match c {
+            '$' => {
+                match state {
+                    TemplateState::InVal  => state = TemplateState::VarStart,
+                    TemplateState::VarStart => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    TemplateState::InVar =>
+                    {
+                        buf_var[name_pos] = c;
+                        name_pos += 1;
+                    },
+                    _ => todo!()
+                }
+            },
+            '{' => {
+                match state {
+                    TemplateState::VarStart => state = TemplateState::InVar,
+                    TemplateState::InVal  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    TemplateState::InVar => {
+                        buf_var[name_pos] = c;
+                        name_pos += 1;
+                    },
+                    _ => todo!()
+                }
+            },
+            '}' => {
+                match state {
+                    TemplateState::VarStart => {
+                        state = TemplateState::InVal;
+                        buf[pos] = '$';
+                        pos += 1;
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    TemplateState::InVal  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    TemplateState::InVar => {
+                        state = TemplateState::InVal;
+                        let var : String = buf_var[0..name_pos].iter().collect();
+                        
+                        match vars.get(&var) {
+                            Some(val) => {
+                                for vc in val.chars() {
+                                    buf[pos] = vc;
+                                     pos += 1;
+                                }
+                            },
+                            None => {
+                                buf[pos] = '$';
+                                pos += 1;
+                                buf[pos] = '{';
+                                pos += 1;
+                                for vc in 0..name_pos {
+                                    buf[pos] = buf_var[vc];
+                                     pos += 1;
+                                }
+                                buf[pos] = '}';
+                                pos += 1;
+                            }
+                        }
+                        name_pos = 0;
+                    },
+                    _ => todo!()
+                }
+            },
+            _ => {
+                match state {
+                    TemplateState::InVal  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    TemplateState::InVar => {
+                        buf_var[name_pos] = c;
+                        name_pos += 1;
+                    },
+                    TemplateState::VarStart => {
+                        buf[pos] = '$';
+                        pos += 1;
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    _ => todo!()
+                }
+            }
+        }
+        
+    }
+    Box::new(buf[0..pos].iter().collect())
 }
 
 pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
@@ -362,6 +495,9 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
         Err(e) => return Err(e),
         Ok(r) => r,
     };
+    let mut scope_names = Vec::new();
+    let mut func_stack = Vec::new();
+    let mut vars_inscope = HashMap::new();
     let mut state = LexState::Begin;
     while state != LexState::End {
         let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
@@ -371,10 +507,31 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
                 state2 = LexState::End;
             },
             Lexem::Variable(name, type_it, range_it) => {
-                
+                scope_names.push(name);
             },
             Lexem::Value(value) => {
                 state = LexState::End;
+                 
+                vars_inscope.insert(scope_names.pop().unwrap(), value);
+            },
+            Lexem::Function(name) => {
+                
+                match name.as_str() {
+                    "display" | "eval" => func_stack.push(name),
+                    _ => ()
+                }
+            },
+            Lexem::Parameter(value) => {
+                let name = func_stack.pop();
+                if let Some(name) = name {
+                match name.as_str() {
+                    "display" => {
+                        println!("{:?}", *process_template_value(&log, &value, &vars_inscope));
+                    },
+                    "eval" => (),
+                    _ => ()
+                }
+                }
             },
             _ => ()
         }
