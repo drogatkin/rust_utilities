@@ -526,7 +526,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
                 if let Some(name) = name {
                 match name.as_str() {
                     "display" => {
-                        println!("{:?}", *process_template_value(&log, &value, &vars_inscope));
+                        println!("{}", *process_template_value(&log, &value, &vars_inscope));
                     },
                     "eval" => (),
                     _ => ()

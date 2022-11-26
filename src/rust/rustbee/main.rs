@@ -117,10 +117,11 @@ fn main() -> io::Result<()> {
           let paths = fs::read_dir(&"./").unwrap();
           //let re = Regex::new(r"bee.*\.rb").unwrap(); if re.is_match(file_path)
           for (_i, path1) in paths.enumerate() {
-               let file_path = path1.unwrap().path().display().to_string();
-               if is_bee_scrpt(&file_path) {
-                    path = file_path.to_string();
-                    break;
+               if let Ok(file_path) = path1.unwrap().file_name().into_string() {
+                    if is_bee_scrpt(&file_path) {
+                         path = file_path.to_string();
+                         break;
+                    }
                }
           }
           if path == "_" {
