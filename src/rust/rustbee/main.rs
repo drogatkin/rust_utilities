@@ -85,8 +85,34 @@ fn is_bee_scrpt(file_path: &str) -> bool {
      file_path.starts_with("bee") && file_path.ends_with(".rb") 
 }
 
+fn find_script(dir: &Path) -> Option<String> {
+     let mut curr_dir = dir;
+     while curr_dir.is_dir() {
+          for entry in fs::read_dir(curr_dir).unwrap() {
+              let entry = entry.unwrap();
+              let path = entry.path();
+              if path.is_file() {
+                    if let Some(path1) = path.file_name() {
+                         if let Some(file_path) = path1.to_str() {
+                              if is_bee_scrpt(&file_path) {
+                                   return Some(file_path.to_string());
+                              }
+                         }
+                    }
+               }
+          }
+          
+          if let Some(dir1) = curr_dir.parent() {
+               curr_dir = dir1;
+          } else {
+               break;
+          }
+     }
+     None
+}
+
 fn main() -> io::Result<()> {
-     println!("RustBee (rb) v 1.0 (c) Copyright {} D. Rogatkin", 2022);
+     println!("RustBee (rb) v 1.0.0 (c) Copyright {} D. Rogatkin", 2022);
      let mut log = Log {debug : false, verbose : false};
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
@@ -117,10 +143,15 @@ fn main() -> io::Result<()> {
           let paths = fs::read_dir(&"./").unwrap();
           //let re = Regex::new(r"bee.*\.rb").unwrap(); if re.is_match(file_path)
           for (_i, path1) in paths.enumerate() {
-               if let Ok(file_path) = path1.unwrap().file_name().into_string() {
-                    if is_bee_scrpt(&file_path) {
-                         path = file_path.to_string();
-                         break;
+               let path2 = path1.unwrap().path() ;
+               if path2.is_file() {
+                    if let Some(path3) = path2.file_name() {
+                         if let Some(file_path) = path3.to_str() {
+                              if is_bee_scrpt(&file_path) {
+                                   path = file_path.to_string();
+                                   break;
+                              }
+                         }
                     }
                }
           }
