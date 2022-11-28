@@ -5,11 +5,13 @@ use std::io::{self, Read};
 use std::collections::HashMap;
 
 use log::Log;
+use std::env;
 
 const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
 
+#[derive(Debug)]
 pub enum VarType {
     Generic,
     Property,
@@ -28,7 +30,7 @@ pub enum VarType {
 
 #[derive(PartialEq, Debug)]
 enum Lexem {
-    Variable(String, String, String), // name:type:range_constraint
+    Variable(String), 
     Value(String), 
     Comment(String),
     Type(String),
@@ -69,12 +71,12 @@ enum TemplateState {
     RightBrack,
     InVar,
 }
-
-pub struct Block {
-    name: String,
-    block_type: VarType,
+ 
+#[derive(Debug)]
+pub struct VarVal {
+    val_type: VarType,
     value: String,
-    values: [String],
+    values: Vec<String>,
 }
 
 pub struct Reader {
@@ -258,7 +260,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::RangeStart;
                         
                         //let lexstr: String = buffer[0..buf_fill].iter().collect();
-                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
+                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state);
                     },
                     LexState::Comment => {
                         buffer[buf_fill] = c;
@@ -303,7 +305,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     LexState::InLex | LexState::BlankOrEnd=> {
                         
                         state = LexState::StartValue; 
-                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state);
+                        return (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state);
                     },
                     _ => todo!()
                 }
@@ -430,15 +432,19 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
         LexState::InLex => {
             
         },
-        LexState::Begin => {
+        LexState::Begin | LexState::End  => {
             
+        },
+        LexState::InType => {
+            state = LexState::End;
+            return (Lexem::Type(buffer[0..buf_fill].iter().collect()), state);
         },
         _ => todo!()
     }
-    (Lexem::Variable(buffer[0..buf_fill].iter().collect(), "".to_string(), "".to_string()), state)
+    (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state)
 }
 
-fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, String>) -> Box<String> {
+fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<String> {
     let mut buf = [' ';4096* 12];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
@@ -492,13 +498,36 @@ fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, String
                     TemplateState::InVar => {
                         state = TemplateState::InVal;
                         let var : String = buf_var[0..name_pos].iter().collect();
-                        
+                       // println!("lookinf {}", var);
                         match vars.get(&var) {
-                            Some(val) => {
-                                for vc in val.chars() {
-                                    buf[pos] = vc;
-                                     pos += 1;
-                                }
+                            Some(var) => {
+                               // println!("found {:?}", var);
+                               match var.val_type {
+                                    VarType::Environment => {
+                                       // println!("looking for {} in env", var.value);
+                                        let env = match env::var(var.value.to_string()) {
+                                            Ok(val) => {
+                                                for vc in val.chars() {
+                                                    buf[pos] = vc;
+                                                    pos += 1;
+                                                }
+                                            },
+                                            Err(_e) => {
+                                                for vc in var.value.chars() {
+                                                    buf[pos] = vc;
+                                                    pos += 1;
+                                                } 
+                                            },
+                                        };
+                                    },
+                                    _ => {
+                                        for vc in var.value.chars() {
+                                            buf[pos] = vc;
+                                            pos += 1;
+                                        }
+                                    }
+                               }
+                                
                             },
                             None => {
                                 buf[pos] = '$';
@@ -543,15 +572,17 @@ fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, String
     Box::new(buf[0..pos].iter().collect())
 }
 
-pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
+pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut HashMap<String, VarVal>) -> io::Result<()> {
     let mut all_chars =  match  open(file) {
         Err(e) => return Err(e),
         Ok(r) => r,
     };
-    let mut scope_names = Vec::new();
+    
     let mut func_stack = Vec::new();
-    let mut vars_inscope = HashMap::new();
+    let mut file_stack = Vec::new();
+    //let mut vars_inscope:HashMap<String, VarVal> = HashMap::new();
     let mut state = LexState::Begin;
+    let mut current_name = "".to_string();
     while state != LexState::End {
         let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
         log.debug(&format!("Lex: {:?}, state: {:?}", lex, state2));
@@ -559,13 +590,14 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
             Lexem::EOF => {
                 state2 = LexState::End;
             },
-            Lexem::Variable(name, type_it, range_it) => {
-                scope_names.push(name);
+            Lexem::Variable(name) => {
+                current_name = name.to_string();
             },
             Lexem::Value(value) => {
                 state = LexState::End;
-                 
-                vars_inscope.insert(scope_names.pop().unwrap(), value);
+                
+                let c_b = VarVal{val_type:VarType::Generic, value:value, values: Vec::new()};
+                vars_inscope.insert(current_name.to_string(), c_b);
             },
             Lexem::Function(name) => {
                 
@@ -574,14 +606,50 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>) -> io::Result<()> {
                     _ => ()
                 }
             },
+            Lexem::Type(var_type) => {
+                match vars_inscope.get(&current_name.to_string()) {
+                    Some(var) => { 
+                        match var_type.as_str() {
+                            "file" => {
+                                let c_b = VarVal{val_type:VarType::File, value:var.value.clone(), values: Vec::new()};
+                                vars_inscope.insert(current_name.to_string(), c_b);
+                            },
+                            "env" => {
+                               // println!("env {}", var.value);
+                                let c_b = VarVal{val_type:VarType::Environment, value:var.value.clone(), values: Vec::new()};
+                                vars_inscope.insert(current_name.to_string(), c_b);
+                            },
+                            _ => ()
+                        }
+                        
+                    },
+                    _ => ()
+                }
+            },
             Lexem::Parameter(value) => {
                 let name = func_stack.pop();
                 if let Some(name) = name {
                 match name.as_str() {
                     "display" => {
-                        println!("{}", *process_template_value(&log, &value, &vars_inscope));
+                        println!("{}", *process_template_value(&log, &value, vars_inscope));
                     },
-                    "eval" => (),
+                    "eval" => {
+                        match vars_inscope.get(&value) {
+                            Some(var) => {
+                              // println!("found {:?}", var);
+                               match var.val_type {
+                                    VarType::File => {
+                                        file_stack.push(var.value.to_string());
+                                        //process(log, var.value.as_str(), args, vars_inscope)?;
+                                    },
+                                    _ => ()
+                               }
+                            },
+                            None => {
+                            }
+                        }
+                        process(log, &file_stack.pop().unwrap(), args, vars_inscope)?;
+                    },
                     _ => ()
                 }
                 }

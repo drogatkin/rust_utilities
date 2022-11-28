@@ -8,6 +8,7 @@ use std::io::{self, Write};
 use std::io::{Error, ErrorKind};
 use log::Log;
 //use regex::Regex;
+use std::collections::HashMap;
 
 mod help;
 mod ver;
@@ -157,14 +158,15 @@ fn main() -> io::Result<()> {
           }
           if path == "_" {
                //println!("No script file not found in ./");
-             return Err(Error::new(ErrorKind::Other,"No script file not found in ./"));
+             return Err(Error::new(ErrorKind::Other,"No script file found in ./"));
            }
      }
      if !Path::new(&path).exists() {
           //println!("File {} not found", path);
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
-     lex::process(&log, &path, &run_args)?;
+     let mut vars_inscope:HashMap<String, lex::VarVal> = HashMap::new();
+     lex::process(&log, &path, &run_args, &mut vars_inscope)?;
      io::stdout().flush()?;
      Ok(())
 }
