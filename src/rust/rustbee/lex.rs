@@ -433,7 +433,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             
         },
         LexState::Begin | LexState::End  => {
-            
+            return (Lexem::EOF, state);
         },
         LexState::InType => {
             state = LexState::End;
@@ -579,8 +579,6 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
     };
     
     let mut func_stack = Vec::new();
-    let mut file_stack = Vec::new();
-    //let mut vars_inscope:HashMap<String, VarVal> = HashMap::new();
     let mut state = LexState::Begin;
     let mut current_name = "".to_string();
     while state != LexState::End {
@@ -602,7 +600,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
             Lexem::Function(name) => {
                 
                 match name.as_str() {
-                    "display" | "eval" => func_stack.push(name),
+                    "display" | "include" => func_stack.push(name),
                     _ => ()
                 }
             },
@@ -626,33 +624,37 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
                     _ => ()
                 }
             },
-            Lexem::Parameter(value) => {
-                let name = func_stack.pop();
-                if let Some(name) = name {
-                match name.as_str() {
-                    "display" => {
-                        println!("{}", *process_template_value(&log, &value, vars_inscope));
-                    },
-                    "eval" => {
-                        match vars_inscope.get(&value) {
-                            Some(var) => {
-                              // println!("found {:?}", var);
-                               match var.val_type {
-                                    VarType::File => {
-                                        file_stack.push(var.value.to_string());
-                                        //process(log, var.value.as_str(), args, vars_inscope)?;
-                                    },
-                                    _ => ()
-                               }
+            Lexem::Parameter(value) => { // collect all parameters and then process function call
+                if state2 == LexState::EndFunction {
+                    let name = func_stack.pop();
+                    if let Some(name) = name {
+                        match name.as_str() {
+                            "display" => {
+                                println!("{}", *process_template_value(&log, &value, vars_inscope));
                             },
-                            None => {
-                            }
+                            "include" => {
+                                match vars_inscope.get(&value) {
+                                    Some(var) => {
+                                      // println!("found {:?}", var);
+                                       match var.val_type {
+                                            VarType::File => {
+                                                let clone_var = var.value.clone();
+                                                process(log, clone_var.as_str(), args, vars_inscope)?;
+                                            },
+                                            _ => ()
+                                       }
+                                    },
+                                    None => {
+                                    }
+                                }
+                            },
+                            _ => ()
                         }
-                        process(log, &file_stack.pop().unwrap(), args, vars_inscope)?;
-                    },
-                    _ => ()
-                }
-                }
+                    }
+                } else {
+                    
+                    // push param in params vec
+                } 
             },
             _ => ()
         }
