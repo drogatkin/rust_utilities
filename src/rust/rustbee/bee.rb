@@ -19,9 +19,11 @@ target version update : . {
    
    {
        display(Generating ver.rs)
+       now=now():fun
+       
        write(ver.rs:file,// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&"1.00.01", 1, &", now(),"\")")
+      (&"1.00.01", 1, &", ${now},"\")")  # or !now() inline
    }
 }
 
