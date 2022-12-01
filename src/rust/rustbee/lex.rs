@@ -79,6 +79,18 @@ enum TemplateState {
     RightBrack,
     InVar,
 }
+
+#[derive(PartialEq, Debug, Copy, Clone)]
+enum HdrState {
+    InType,
+    NameStart,  // $
+    WorkDiv,
+    PathDiv,
+    InName,
+    InPath,
+    InWork,
+    InNameBlank,
+}
  
 #[derive(Debug)]
 pub struct VarVal {
@@ -560,7 +572,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1; 
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             }
         }
@@ -590,9 +602,129 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
     (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state)
 }
 
-fn process_block_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
+fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
     let mut buf = [' ';4096* 12];
-    Box::new(("".to_string(), "".to_string(), "".to_string(), "".to_string()))
+
+    let chars = value.chars();
+    let mut state = HdrState::InType;
+    let mut pos = 0;
+    let mut blank_cnt = 0;
+    let mut name : String = "".to_string();
+    let mut lex_type : String = "".to_string();
+    let mut work_dir : String = "".to_string();
+    let mut path : String = "".to_string();
+    for c in chars {
+        match c {
+            ' ' => {
+                match state {
+                    HdrState::InType => {
+                        state = HdrState::NameStart;
+                        lex_type = buf[0..pos].iter().collect();
+                        pos = 0;
+                    },
+                    HdrState::PathDiv | HdrState::WorkDiv => {
+                    },
+                    HdrState::NameStart => (),
+                    HdrState::InName => {
+                        state = HdrState::InNameBlank;
+                        blank_cnt = 1;
+                    },
+                    HdrState::InNameBlank => {
+                        blank_cnt += 1;
+                    },
+                    HdrState::WorkDiv | HdrState::PathDiv => (),
+                    HdrState::InWork | HdrState::InPath => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+
+            },
+            ':' => {
+                match state {
+                    HdrState::InType => {
+                        state = HdrState::WorkDiv;
+                        lex_type = buf[0..pos].iter().collect();
+                        pos = 0;
+                    },
+                    HdrState::WorkDiv => {
+                        state = HdrState::PathDiv;
+                    },
+                    HdrState::NameStart => {
+                        state = HdrState::WorkDiv;
+                    },
+                    HdrState::InName => {
+                        state = HdrState::WorkDiv;
+                        name = buf[0..pos].iter().collect();
+                        pos = 0;
+                    },
+                    HdrState::InWork => {
+                        state = HdrState::PathDiv;
+                        work_dir = buf[0..pos].iter().collect();
+                        pos = 0;
+                    },
+                    HdrState::InNameBlank => {
+                        name = buf[0..pos].iter().collect();
+                        pos = 0;
+                        state = HdrState::WorkDiv;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+
+            },
+            _ => {
+                match state {
+                    HdrState::InType => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    HdrState::WorkDiv => {
+                        state = HdrState::InWork;
+                    },
+                    HdrState::PathDiv => {
+                        state = HdrState::InPath;
+                    },
+                    HdrState::NameStart | HdrState::InName => {
+                        state = HdrState::InName;
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    
+                    HdrState::InNameBlank => {
+                        state = HdrState::InName;
+                        for _ in 0..blank_cnt {
+                            buf[pos] = ' ';
+                            pos += 1;
+                        }
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    HdrState::InWork | HdrState::InPath => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+            }
+        }
+    }
+    match state {
+        HdrState::InType => {
+            lex_type = buf[0..pos].iter().collect();
+        },
+        HdrState::InName => {
+            name = buf[0..pos].iter().collect();
+        },
+        HdrState::InWork |  HdrState::PathDiv => {
+            work_dir = buf[0..pos].iter().collect();
+        },
+        HdrState::InPath => {
+            path = buf[0..pos].iter().collect();
+        },
+        _ => todo!("state: {:?}", state)
+    }
+    Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
 }
 
 fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<String> {
@@ -811,6 +943,8 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
             },
             Lexem::BlockHdr(value) => { 
                 // parse header and push in block stack
+                let (type_hdr,name,work,path) = *process_lex_header(&log, &value, vars_inscope) ;
+                log.debug(&format!("Type: {}, name: {}, work dir: {}, path; {}", type_hdr,name,work,path));
             },
             _ => ()
         }
