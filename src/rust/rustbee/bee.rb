@@ -4,7 +4,7 @@ env =./env.rb:file
 project  =rb
 RUSTC=/home/dmitriy/AndroidStudioProjects/rust/build/x86_64-unknown-linux-gnu/stage2/bin/rustc
 src=main.rs
-include(env)
+include(env);
 
 target version update : . {
    dependency {
@@ -23,7 +23,7 @@ target version update : . {
        
        write(ver.rs:file,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.01\", 1, &", \"${now}\"","\")")  # or !now() inline
+      (&\"1.00.01\", 1, & \"",${now},"\")")  # or !now() inline
    }
 }
 

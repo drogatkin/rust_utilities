@@ -67,6 +67,7 @@ enum LexState {
     BlockStart,
     BlockEnd,
     EscapeParam,
+    //BlankInParam,
     End
 }
 
@@ -90,8 +91,11 @@ pub struct Reader {
     buf: [u8;BUF_SIZE],
     pos: usize,
     end: usize,
+    line: u32,
+    line_offset: u16,
     reader: File,
 }
+
 
 impl Reader {
     fn next(&mut self) -> Option<char> {
@@ -114,6 +118,8 @@ fn open(file: &str) -> io::Result<Reader> {
         reader : File::open(file)?,
         pos : 0,
         end : 0,
+        line : 0,
+        line_offset : 0,
         buf : [0; 256],
     };
     Ok(res)
@@ -196,6 +202,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         blank_counter = 1;
                         //return (Lexem::Value(buffer[0..buf_fill].iter().collect()), state);
                     },
+                   /* LexState::InParam => {
+                        state = LexState::BlankInParam;
+                        blank_counter = 1;
+                    },*/
                     LexState::BlankInValue => {
                         blank_counter += 1;
                     },
@@ -252,6 +262,9 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                 }
             },
             '\n' | '\r' => {
+                if c == '\n' {
+                    reader.line += 1;
+                }
                 match state {
                     LexState::Comment => {
                         state = LexState::Begin;
@@ -326,7 +339,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                 }
             },
             '}' => {
-                println!("{:?}", state);
+                //println!("{:?}", state);
                 match state {
                     LexState::Begin  => {
                         state = LexState::BlockEnd;
@@ -342,11 +355,16 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     // decide what to do with lex value ????
                         return (Lexem::BlockEnd, state);
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?}", state)
                 }
             },
             ';' => {
-
+                match state {
+                    LexState::EndFunction | LexState::BlockEnd => {
+                        state = LexState::Begin; 
+                    },
+                    _ => todo!("state: {:?} at {}", state, reader.line)
+                }
             },
 
             ':' => {
@@ -572,6 +590,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
     (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state)
 }
 
+fn process_block_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
+    let mut buf = [' ';4096* 12];
+    Box::new(("".to_string(), "".to_string(), "".to_string(), "".to_string()))
+}
+
 fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<String> {
     let mut buf = [' ';4096* 12];
     let mut buf_var = [' ';128]; // buf for var name
@@ -753,6 +776,8 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
                 }
             },
             Lexem::Parameter(value) => { // collect all parameters and then process function call
+                let value1 = value.to_string();
+                println!("trimmed val {}", value1.trim());
                 if state2 == LexState::EndFunction {
                     let name = func_stack.pop();
                     if let Some(name) = name {
