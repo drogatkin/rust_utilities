@@ -14,6 +14,7 @@ mod help;
 mod ver;
 mod log;
 mod lex;
+mod fun;
 
 #[derive(Debug)]
 enum CmdOption {
@@ -166,7 +167,9 @@ fn main() -> io::Result<()> {
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
      let mut vars_inscope:HashMap<String, lex::VarVal> = HashMap::new();
-     lex::process(&log, &path, &run_args, &mut vars_inscope)?;
+     let mut lex_tree = fun::GenBlock::new(fun::BlockType::Main);
+     lex_tree.vars = vars_inscope;
+     lex::process(&log, &path, &run_args, &mut lex_tree)?;
      io::stdout().flush()?;
      Ok(())
 }

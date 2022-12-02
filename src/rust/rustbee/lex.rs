@@ -6,6 +6,7 @@ use std::collections::HashMap;
 
 use log::Log;
 use std::env;
+use fun::GenBlock;
 
 const BUF_SIZE: usize = 256;
 
@@ -30,7 +31,7 @@ pub enum VarType {
 }
 
 #[derive(PartialEq, Debug)]
-enum Lexem {
+pub enum Lexem {
     Variable(String), 
     Value(String), 
     Comment(String),
@@ -855,7 +856,7 @@ fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal
     Box::new(buf[0..pos].iter().collect())
 }
 
-pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut HashMap<String, VarVal>) -> io::Result<()> {
+pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock) -> io::Result<()> {
     let mut all_chars =  match  open(file) {
         Err(e) => return Err(e),
         Ok(r) => r,
@@ -863,10 +864,12 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
     
     let mut func_stack = Vec::new();
     let mut state = LexState::Begin;
+    // create mainbloc here
+
     let mut current_name = "".to_string();
     while state != LexState::End {
         let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
-        log.debug(&format!("Lex: {:?}, state: {:?}", lex, state2));
+        log.debug(&format!("Lex: {:?}, line: {}, state: {:?}", lex, all_chars.line, state2));
         match lex {
             Lexem::EOF => {
                 state2 = LexState::End;
@@ -878,7 +881,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
                 state = LexState::End;
                 
                 let c_b = VarVal{val_type:VarType::Generic, value:value, values: Vec::new()};
-                vars_inscope.insert(current_name.to_string(), c_b);
+                block.vars.insert(current_name.to_string(), c_b);
             },
             Lexem::Function(name) => {
                 
@@ -888,17 +891,17 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
                 }
             },
             Lexem::Type(var_type) => {
-                match vars_inscope.get(&current_name.to_string()) {
+                match block.vars.get(&current_name.to_string()) {
                     Some(var) => { 
                         match var_type.as_str() {
                             "file" => {
                                 let c_b = VarVal{val_type:VarType::File, value:var.value.clone(), values: Vec::new()};
-                                vars_inscope.insert(current_name.to_string(), c_b);
+                                block.vars.insert(current_name.to_string(), c_b);
                             },
                             "env" => {
                                // println!("env {}", var.value);
                                 let c_b = VarVal{val_type:VarType::Environment, value:var.value.clone(), values: Vec::new()};
-                                vars_inscope.insert(current_name.to_string(), c_b);
+                                block.vars.insert(current_name.to_string(), c_b);
                             },
                             _ => ()
                         }
@@ -915,16 +918,16 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
-                                println!("{}", *process_template_value(&log, &value, vars_inscope));
+                                println!("{}", *process_template_value(&log, &value, &block.vars));
                             },
                             "include" => {
-                                match vars_inscope.get(&value) {
+                                match block.vars.get(&value) {
                                     Some(var) => {
                                       // println!("found {:?}", var);
                                        match var.val_type {
                                             VarType::File => {
                                                 let clone_var = var.value.clone();
-                                                process(log, clone_var.as_str(), args, vars_inscope)?;
+                                                process(log, clone_var.as_str(), args, block)?;
                                             },
                                             _ => ()
                                        }
@@ -943,7 +946,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, vars_inscope: &mut Ha
             },
             Lexem::BlockHdr(value) => { 
                 // parse header and push in block stack
-                let (type_hdr,name,work,path) = *process_lex_header(&log, &value, vars_inscope) ;
+                let (type_hdr,name,work,path) = *process_lex_header(&log, &value, &block.vars) ;
                 log.debug(&format!("Type: {}, name: {}, work dir: {}, path; {}", type_hdr,name,work,path));
             },
             _ => ()

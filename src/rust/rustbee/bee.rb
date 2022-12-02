@@ -40,7 +40,7 @@ target build:. {
        exec RUSTC::  (
            -o,
            ${project},
-           src
+           ${src}
        )
    }
 }
