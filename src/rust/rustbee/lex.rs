@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use log::Log;
 use std::env;
-use fun::GenBlock;
+use fun::{GenBlock, BlockType, GenFun};
 
 const BUF_SIZE: usize = 256;
 
@@ -122,6 +122,7 @@ impl Reader {
             }
             self.pos = 0;
         }
+        self.line_offset += 1;
         Some(char::from(self.buf[self.pos]))
     }
 }
@@ -277,6 +278,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             '\n' | '\r' => {
                 if c == '\n' {
                     reader.line += 1;
+                    reader.line_offset = 0;
                 }
                 match state {
                     LexState::Comment => {
@@ -633,7 +635,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                     HdrState::InNameBlank => {
                         blank_cnt += 1;
                     },
-                    HdrState::WorkDiv | HdrState::PathDiv => (),
+                    HdrState::WorkDiv | HdrState::PathDiv => {},
                     HdrState::InWork | HdrState::InPath => {
                         buf[pos] = c;
                         pos += 1;
@@ -863,13 +865,14 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
     };
     
     let mut func_stack = Vec::new();
+    let mut block_stack : Vec<Box<GenBlock>> = Vec::new();
     let mut state = LexState::Begin;
-    // create mainbloc here
-
+    // current block
+    let mut scoped_block = &mut GenBlock::new(BlockType::Scope);
     let mut current_name = "".to_string();
     while state != LexState::End {
         let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
-        log.debug(&format!("Lex: {:?}, line: {}, state: {:?}", lex, all_chars.line, state2));
+        log.debug(&format!("Lex: {:?}, line: {}/{}, state: {:?}", lex, all_chars.line, all_chars.line_offset, state2));
         match lex {
             Lexem::EOF => {
                 state2 = LexState::End;
@@ -878,13 +881,13 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
                 current_name = name.to_string();
             },
             Lexem::Value(value) => {
-                state = LexState::End;
+               // state = LexState::End;
                 
                 let c_b = VarVal{val_type:VarType::Generic, value:value, values: Vec::new()};
                 block.vars.insert(current_name.to_string(), c_b);
             },
             Lexem::Function(name) => {
-                
+                let func = GenFun{name : name.to_string(), params : Vec::new()};
                 match name.as_str() {
                     "display" | "include" => func_stack.push(name),
                     _ => ()
@@ -912,7 +915,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
             },
             Lexem::Parameter(value) => { // collect all parameters and then process function call
                 let value1 = value.to_string();
-                println!("trimmed val {}", value1.trim());
+               // println!("trimmed val {}", value1.trim());
                 if state2 == LexState::EndFunction {
                     let name = func_stack.pop();
                     if let Some(name) = name {
@@ -948,8 +951,35 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
                 // parse header and push in block stack
                 let (type_hdr,name,work,path) = *process_lex_header(&log, &value, &block.vars) ;
                 log.debug(&format!("Type: {}, name: {}, work dir: {}, path; {}", type_hdr,name,work,path));
+                match type_hdr.as_str() {
+                    "target" => {
+                        *scoped_block = GenBlock::new(BlockType::Target);
+                        scoped_block.name = Some(name);
+                        scoped_block.dir = Some(work);
+                    },
+                    "eq" => {
+                        *scoped_block = GenBlock::new(BlockType::Eq);
+                    },
+                    "" => {
+                        *scoped_block = GenBlock::new(BlockType::Scope);
+                    },
+                    "dependency" => {
+                        *scoped_block = GenBlock::new(BlockType::Dependency);
+                    },
+                    _ => todo!("unknown block {}", type_hdr)
+                }
+                
             },
-            _ => ()
+            Lexem::BlockEnd => {
+               /* if let Some(block_parent) = block.parent {
+                    block = &mut *block_parent;
+                } */
+
+            },
+            Lexem::Comment(value) => {
+                log.debug(&format!("Commentary: {}, line: {}/{}", value, all_chars.line, all_chars.line_offset));
+            },
+            _ => todo!("unprocessed lexem {:?}", lex)
         }
         state = state2;
     }

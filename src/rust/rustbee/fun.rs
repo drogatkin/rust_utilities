@@ -10,17 +10,18 @@ pub enum BlockType {
     If,
     Expr,
     Scope,
+    Eq,
 }
 
 pub struct GenBlock <'a>{
-    name: Option<String>,
-    block_type: BlockType,
-    dir:Option<String>, // working directory
-    flex: Option<String>,
+    pub name: Option<String>,
+    pub block_type: BlockType,
+    pub dir:Option<String>, // working directory
+    pub flex: Option<String>,
     pub vars: HashMap<String, VarVal>,
-    children: Vec<&'a GenBlock<'a>>,
-    deps: Vec<&'a GenBlock<'a>>,
-    parent: Option<Box<GenBlock<'a>>>,
+    pub children: Vec<&'a GenBlock<'a>>,
+    pub deps: Vec<&'a GenBlock<'a>>,
+    pub parent: Option<Box<GenBlock<'a>>>,
 }
 
 impl GenBlock<'static> {
@@ -37,5 +38,11 @@ impl GenBlock<'static> {
         }
 
     }
+
+}
+
+pub struct GenFun {
+    pub name: String,
+    pub params: Vec<String>,
 
 }

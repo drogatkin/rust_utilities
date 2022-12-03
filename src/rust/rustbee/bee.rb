@@ -36,7 +36,7 @@ target build:. {
        allnewer(bee-rust.xml,${project})
    }
    {
-      display(Compiling ${src} ..)
+      display(Compiling ${src} ...)
        exec RUSTC::  (
            -o,
            ${project},
