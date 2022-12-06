@@ -102,9 +102,9 @@ impl GenBlockTup {
         }
     }
 
-    pub fn run(&self, targets: &Vec<&String>, arguments: &Vec<String>) -> io::Result<()> {
-        println!("processing for {}", self.0.borrow_mut().children.len());
-        Ok(())
-    }
+}
 
+pub fn run(block: GenBlockTup, targets: &Vec<String>, arguments: &Vec<String>) -> io::Result<()> {
+    println!("processing for {}", block.0.borrow_mut().children.len());
+    Ok(())
 }

@@ -170,9 +170,10 @@ fn main() -> io::Result<()> {
      }
      
      let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
-     
-     lex::process(&log, &path, &run_args, lex_tree)?;
-     
+     let exec_tree = lex_tree.clone();
+     lex::process(&log, &path, lex_tree)?;
+     let real_targets:Vec<String> = Vec::new();
+     fun::run(exec_tree, &real_targets, &run_args);
      io::stdout().flush()?;
      Ok(())
 }

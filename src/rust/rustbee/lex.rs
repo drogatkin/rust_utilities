@@ -795,13 +795,13 @@ fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<St
                     TemplateState::InVar => {
                         state = TemplateState::InVal;
                         let var : String = buf_var[0..name_pos].iter().collect();
-                        println!("looking {}", var);
+                        //println!("looking {}", var);
                         match vars.search_up(&var) {
                             Some(var) => {
-                                println!("found {:?}", var);
+                               // println!("found {:?}", var);
                                match var.val_type {
                                     VarType::Environment => {
-                                        println!("looking for {} in env", var.value);
+                                      //  println!("looking for {} in env", var.value);
                                         let env = match env::var(var.value.to_string()) {
                                             Ok(val) => {
                                                 for vc in val.chars() {
@@ -869,7 +869,7 @@ fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<St
     Box::new(buf[0..pos].iter().collect())
 }
 
-pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -> io::Result<()> {
+pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
     let mut all_chars =  match  open(file) {
         Err(e) => return Err(e),
         Ok(r) => r,
@@ -906,6 +906,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
             },
             Lexem::Type(var_type) => {
                 let mut bl = scoped_block.0.as_ref().borrow_mut();
+               // println!("name {} in block {:?}", &current_name, bl.block_type);
                 match bl.vars.get(&current_name.to_string()) {
                     Some(var) => { 
                         match var_type.as_str() {
@@ -914,7 +915,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                                 bl.vars.insert(current_name.to_string(), c_b);
                             },
                             "env" => {
-                                println!("env {} in {:?}", var.value, bl.block_type);
+                              //  println!("env {} in {:?}", var.value, bl.block_type);
                                 let c_b = VarVal{val_type:VarType::Environment, value:var.value.clone(), values: Vec::new()};
                                 bl.vars.insert(current_name.to_string(), c_b);
                             },
@@ -933,11 +934,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                let mut rl_block = scoped_block.0.as_ref().borrow_mut();
                 // push param in params vec
                 rl_block.params.push(value1);
-                /*    match &rl_block.parent {
-                        Some(parent) => println!("some parent"),
-                        None => println!("no parent"),
-                    }
-                */
+
                   if let Some(name1) = &rl_block.name {
                     name = Some(name1.clone());
                   }
@@ -945,9 +942,6 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                 }
                
                 if state2 == LexState::EndFunction {
-                    
-                   
-                    //let name = &rl_block.name;
                     {
                     if let Some(name) = name {
                         match name.as_str() {
@@ -961,8 +955,11 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                                        match var.val_type {
                                             VarType::File => {
                                                 let clone_var = var.value.clone();
-                                                let clone_scoped_block = scoped_block.clone();
-                                                process(log, clone_var.as_str(), args, clone_scoped_block)?;
+                                                let parent_scoped_block = scoped_block.parent();
+                                                if let Some(block) = parent_scoped_block {
+                                                    process(log, clone_var.as_str(), block.clone())?;
+                                                }
+                                                
                                             },
                                             _ => ()
                                        }
@@ -1031,7 +1028,6 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
         }
         state = state2;
     }
-    let targets = Vec::new();
-    scoped_block.run(&targets, &args)
-    //Ok(())
+    
+    Ok(())
 }
