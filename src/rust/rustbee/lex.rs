@@ -786,13 +786,13 @@ fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<St
                     TemplateState::InVar => {
                         state = TemplateState::InVal;
                         let var : String = buf_var[0..name_pos].iter().collect();
-                       // println!("lookinf {}", var);
+                        println!("looking {}", var);
                         match vars.search_up(&var) {
                             Some(var) => {
-                               // println!("found {:?}", var);
+                                println!("found {:?}", var);
                                match var.val_type {
                                     VarType::Environment => {
-                                       // println!("looking for {} in env", var.value);
+                                        println!("looking for {} in env", var.value);
                                         let env = match env::var(var.value.to_string()) {
                                             Ok(val) => {
                                                 for vc in val.chars() {
@@ -905,7 +905,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                                 bl.vars.insert(current_name.to_string(), c_b);
                             },
                             "env" => {
-                               // println!("env {}", var.value);
+                                println!("env {} in {:?}", var.value, bl.block_type);
                                 let c_b = VarVal{val_type:VarType::Environment, value:var.value.clone(), values: Vec::new()};
                                 bl.vars.insert(current_name.to_string(), c_b);
                             },
@@ -939,6 +939,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                     
                    
                     //let name = &rl_block.name;
+                    {
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
@@ -951,7 +952,8 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                                        match var.val_type {
                                             VarType::File => {
                                                 let clone_var = var.value.clone();
-                                               // process(log, clone_var.as_str(), args, &scoped_block)?;
+                                                let clone_scoped_block = scoped_block.clone();
+                                                process(log, clone_var.as_str(), args, clone_scoped_block)?;
                                             },
                                             _ => ()
                                        }
@@ -962,26 +964,14 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                             },
                             _ => ()
                         }
-                    } 
+                    } }
                     let parent_block =  Rc::clone(&scoped_block.0);
                     let pp2 = parent_block.as_ref().borrow_mut();
                     let pp1 = pp2.parent.as_ref().unwrap();
                     let pp = &pp1.0;
                     scoped_block = GenBlockTup(Rc::clone(pp));
                 } 
-                //let nb = GenBlockTup(Rc::clone(&scoped_block.0.as_ref().borrow_mut().parent.unwrap().0));
-               // scoped_block = GenBlockTup(Rc::clone(&scoped_block.0.as_ref().borrow_mut().parent.unwrap().0));
-                //let mut rl_block1 = scoped_block.0.as_ref().borrow_mut();
-                //scoped_block.0 = rl_block1.parent.as_mut().unwrap().0;
-                //scoped_block.0 = Rc::clone(rl_block.parent.unwrap().0.as_ref());
-                // let mut rl_block = scoped_block.0.as_ref().borrow_mut().parent.as_mut().unwrap();//scoped_block.0.as_ref().borrow_mut().parent.as_mut().unwrap().upgrade().unwrap();
-                
-                //scoped_block = *scoped_block.0.as_ref().borrow_mut().parent.as_mut().unwrap();
-                //let parent = rl_block.parent.unwrap().upgrade().unwrap();
-                //scoped_block.0 = *rl_block;
-                //scoped_block = GenBlockTup(Rc::clone(rl_block.parent.unwrap().upgrade().unwrap()));
  
-                //println!("parent block of func {:?}", scoped_block.0.as_ref().borrow_mut().name);
             },
             Lexem::BlockHdr(value) => { 
                 // parse header and push in block stack
@@ -997,22 +987,32 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "eq" => {
-                       // *scoped_block = GenBlock::new(BlockType::Eq);
+                        let mut inner_block = GenBlock::new(BlockType::Eq);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "" => {
-                       // *scoped_block = GenBlock::new(BlockType::Scope);
+                        let mut inner_block = GenBlock::new(BlockType::Scope);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));// *scoped_block = GenBlock::new(BlockType::Scope);
                     },
                     "dependency" => {
-                       // *scoped_block = GenBlock::new(BlockType::Dependency);
+                        let mut inner_block = GenBlock::new(BlockType::Dependency);
+        
+                        scoped_block =  scoped_block.add_dep(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     _ => todo!("unknown block {}", type_hdr)
                 }
                 
             },
             Lexem::BlockEnd => {
-               /* if let Some(block_parent) = block.parent {
-                    block = &mut *block_parent;
-                } */
+                //println!(" current {:?}", scoped_block.0.borrow_mut().block_type);
+                let parent_block =  Rc::clone(&scoped_block.0);
+                let pp2 = parent_block.as_ref().borrow_mut();
+                let pp1 = pp2.parent.as_ref().unwrap();
+                let pp = &pp1.0;
+                scoped_block = GenBlockTup(Rc::clone(pp));
+               //${Shell}  println!(" to {:?}", scoped_block.0.borrow_mut().block_type);
 
             },
             Lexem::Comment(value) => {
@@ -1022,5 +1022,7 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -
         }
         state = state2;
     }
-    Ok(())
+    let targets = Vec::new();
+    scoped_block.run(&targets, &args)
+    //Ok(())
 }

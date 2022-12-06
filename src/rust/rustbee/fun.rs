@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use lex::{Lexem, VarVal, VarType};
+use std::io::{self, Write};
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
@@ -87,6 +88,23 @@ impl GenBlockTup {
             }
         }
         
+    }
+
+    pub fn clone(&self) -> GenBlockTup {
+        GenBlockTup(Rc::clone(&self.0))
+    }
+
+    pub fn parent(&self) -> Option<GenBlockTup> {
+        if let Some(parent) = &self.0.borrow_mut().parent {
+            Some(parent.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn run(&self, targets: &Vec<&String>, arguments: &Vec<String>) -> io::Result<()> {
+        println!("processing for {}", self.0.borrow_mut().children.len());
+        Ok(())
     }
 
 }

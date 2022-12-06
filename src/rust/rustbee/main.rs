@@ -169,10 +169,10 @@ fn main() -> io::Result<()> {
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
      
-     let mut lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
+     let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
      
      lex::process(&log, &path, &run_args, lex_tree)?;
-     // proc::run
+     
      io::stdout().flush()?;
      Ok(())
 }

@@ -5,6 +5,7 @@ project  =rb
 RUSTC=/home/dmitriy/AndroidStudioProjects/rust/build/x86_64-unknown-linux-gnu/stage2/bin/rustc
 src=main.rs
 include(env);
+display(Shell ${Shell})
 
 target version update : . {
    dependency {
