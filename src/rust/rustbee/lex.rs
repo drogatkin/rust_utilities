@@ -6,13 +6,15 @@ use std::collections::HashMap;
 
 use log::Log;
 use std::env;
-use fun::{GenBlock, BlockType, GenFun};
+use fun::{GenBlock, BlockType, GenBlockTup};
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
 const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum VarType {
     Generic,
     Property,
@@ -95,9 +97,9 @@ enum HdrState {
  
 #[derive(Debug)]
 pub struct VarVal {
-    val_type: VarType,
-    value: String,
-    values: Vec<String>,
+    pub val_type: VarType,
+    pub value: String,
+    pub values: Vec<String>,
 }
 
 pub struct Reader {
@@ -730,7 +732,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
 }
 
-fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<String> {
+fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<String> {
     let mut buf = [' ';4096* 12];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
@@ -785,7 +787,7 @@ fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal
                         state = TemplateState::InVal;
                         let var : String = buf_var[0..name_pos].iter().collect();
                        // println!("lookinf {}", var);
-                        match vars.get(&var) {
+                        match vars.search_up(&var) {
                             Some(var) => {
                                // println!("found {:?}", var);
                                match var.val_type {
@@ -858,17 +860,17 @@ fn process_template_value(log: &Log, value : &str, vars: &HashMap<String, VarVal
     Box::new(buf[0..pos].iter().collect())
 }
 
-pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock) -> io::Result<()> {
+pub fn process(log: &Log, file: & str, args: &Vec<String>, block: GenBlockTup) -> io::Result<()> {
     let mut all_chars =  match  open(file) {
         Err(e) => return Err(e),
         Ok(r) => r,
     };
     
-    let mut func_stack = Vec::new();
-    let mut block_stack : Vec<Box<GenBlock>> = Vec::new();
+    //let mut func_stack = Vec::new();
+    let mut block_stack : Vec<&mut GenBlock> = Vec::new();
     let mut state = LexState::Begin;
     // current block
-    let mut scoped_block = &mut GenBlock::new(BlockType::Scope);
+    let mut scoped_block = block; 
     let mut current_name = "".to_string();
     while state != LexState::End {
         let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
@@ -884,27 +886,28 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
                // state = LexState::End;
                 
                 let c_b = VarVal{val_type:VarType::Generic, value:value, values: Vec::new()};
-                block.vars.insert(current_name.to_string(), c_b);
+                scoped_block.0.as_ref().borrow_mut().vars.insert(current_name.to_string(), c_b);
             },
             Lexem::Function(name) => {
-                let func = GenFun{name : name.to_string(), params : Vec::new()};
-                match name.as_str() {
-                    "display" | "include" => func_stack.push(name),
-                    _ => ()
-                }
+                let mut func = GenBlock::new(BlockType::Function);
+                //fun::GenBlockTup(Rc::new(RefCell::new(GenBlock::new(BlockType::Function))));
+                func.name = Some(name);
+                scoped_block = scoped_block.add(GenBlockTup(Rc::new(RefCell::new(func))));
+             
             },
             Lexem::Type(var_type) => {
-                match block.vars.get(&current_name.to_string()) {
+                let mut bl = scoped_block.0.as_ref().borrow_mut();
+                match bl.vars.get(&current_name.to_string()) {
                     Some(var) => { 
                         match var_type.as_str() {
                             "file" => {
                                 let c_b = VarVal{val_type:VarType::File, value:var.value.clone(), values: Vec::new()};
-                                block.vars.insert(current_name.to_string(), c_b);
+                                bl.vars.insert(current_name.to_string(), c_b);
                             },
                             "env" => {
                                // println!("env {}", var.value);
                                 let c_b = VarVal{val_type:VarType::Environment, value:var.value.clone(), values: Vec::new()};
-                                block.vars.insert(current_name.to_string(), c_b);
+                                bl.vars.insert(current_name.to_string(), c_b);
                             },
                             _ => ()
                         }
@@ -914,23 +917,41 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
                 }
             },
             Lexem::Parameter(value) => { // collect all parameters and then process function call
-                let value1 = value.to_string();
+                let value1 = value.trim().to_string();
                // println!("trimmed val {}", value1.trim());
+               let mut name : Option<String> = None;
+               {
+               let mut rl_block = scoped_block.0.as_ref().borrow_mut();
+                // push param in params vec
+                rl_block.params.push(value1);
+                /*    match &rl_block.parent {
+                        Some(parent) => println!("some parent"),
+                        None => println!("no parent"),
+                    }
+                */
+                  if let Some(name1) = &rl_block.name {
+                    name = Some(name1.clone());
+                  }
+                  
+                }
+               
                 if state2 == LexState::EndFunction {
-                    let name = func_stack.pop();
+                    
+                   
+                    //let name = &rl_block.name;
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
-                                println!("{}", *process_template_value(&log, &value, &block.vars));
+                                println!("{}", *process_template_value(&log, &value, &scoped_block));
                             },
                             "include" => {
-                                match block.vars.get(&value) {
+                                match scoped_block.search_up(&value) {
                                     Some(var) => {
                                       // println!("found {:?}", var);
                                        match var.val_type {
                                             VarType::File => {
                                                 let clone_var = var.value.clone();
-                                                process(log, clone_var.as_str(), args, block)?;
+                                               // process(log, clone_var.as_str(), args, &scoped_block)?;
                                             },
                                             _ => ()
                                        }
@@ -941,30 +962,48 @@ pub fn process(log: &Log, file: & str, args: &Vec<String>, block: &mut GenBlock)
                             },
                             _ => ()
                         }
-                    }
-                } else {
-
-                    // push param in params vec
+                    } 
+                    let parent_block =  Rc::clone(&scoped_block.0);
+                    let pp2 = parent_block.as_ref().borrow_mut();
+                    let pp1 = pp2.parent.as_ref().unwrap();
+                    let pp = &pp1.0;
+                    scoped_block = GenBlockTup(Rc::clone(pp));
                 } 
+                //let nb = GenBlockTup(Rc::clone(&scoped_block.0.as_ref().borrow_mut().parent.unwrap().0));
+               // scoped_block = GenBlockTup(Rc::clone(&scoped_block.0.as_ref().borrow_mut().parent.unwrap().0));
+                //let mut rl_block1 = scoped_block.0.as_ref().borrow_mut();
+                //scoped_block.0 = rl_block1.parent.as_mut().unwrap().0;
+                //scoped_block.0 = Rc::clone(rl_block.parent.unwrap().0.as_ref());
+                // let mut rl_block = scoped_block.0.as_ref().borrow_mut().parent.as_mut().unwrap();//scoped_block.0.as_ref().borrow_mut().parent.as_mut().unwrap().upgrade().unwrap();
+                
+                //scoped_block = *scoped_block.0.as_ref().borrow_mut().parent.as_mut().unwrap();
+                //let parent = rl_block.parent.unwrap().upgrade().unwrap();
+                //scoped_block.0 = *rl_block;
+                //scoped_block = GenBlockTup(Rc::clone(rl_block.parent.unwrap().upgrade().unwrap()));
+ 
+                //println!("parent block of func {:?}", scoped_block.0.as_ref().borrow_mut().name);
             },
             Lexem::BlockHdr(value) => { 
                 // parse header and push in block stack
-                let (type_hdr,name,work,path) = *process_lex_header(&log, &value, &block.vars) ;
+               // let mut test_block = GenBlock::new(BlockType::Target);
+                let (type_hdr,name,work,path) = *process_lex_header(&log, &value, &scoped_block.0.as_ref().borrow_mut().vars) ;
                 log.debug(&format!("Type: {}, name: {}, work dir: {}, path; {}", type_hdr,name,work,path));
                 match type_hdr.as_str() {
                     "target" => {
-                        *scoped_block = GenBlock::new(BlockType::Target);
-                        scoped_block.name = Some(name);
-                        scoped_block.dir = Some(work);
+                        let mut inner_block = GenBlock::new(BlockType::Target);
+                        inner_block.name = Some(name);
+                        inner_block.dir = Some(work);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "eq" => {
-                        *scoped_block = GenBlock::new(BlockType::Eq);
+                       // *scoped_block = GenBlock::new(BlockType::Eq);
                     },
                     "" => {
-                        *scoped_block = GenBlock::new(BlockType::Scope);
+                       // *scoped_block = GenBlock::new(BlockType::Scope);
                     },
                     "dependency" => {
-                        *scoped_block = GenBlock::new(BlockType::Dependency);
+                       // *scoped_block = GenBlock::new(BlockType::Dependency);
                     },
                     _ => todo!("unknown block {}", type_hdr)
                 }

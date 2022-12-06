@@ -9,6 +9,8 @@ use std::io::{Error, ErrorKind};
 use log::Log;
 //use regex::Regex;
 use std::collections::HashMap;
+use std::cell::RefCell;
+use std::rc::{Rc, Weak};
 
 mod help;
 mod ver;
@@ -166,10 +168,11 @@ fn main() -> io::Result<()> {
           //println!("File {} not found", path);
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
-     let mut vars_inscope:HashMap<String, lex::VarVal> = HashMap::new();
-     let mut lex_tree = fun::GenBlock::new(fun::BlockType::Main);
-     lex_tree.vars = vars_inscope;
-     lex::process(&log, &path, &run_args, &mut lex_tree)?;
+     
+     let mut lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
+     
+     lex::process(&log, &path, &run_args, lex_tree)?;
+     // proc::run
      io::stdout().flush()?;
      Ok(())
 }

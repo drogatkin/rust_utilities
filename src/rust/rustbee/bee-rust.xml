@@ -61,6 +61,8 @@ pub fn version() -> (&amp;'static str, u32, &amp;'static str) {
     </dependency>
       <echo>Compiling ${src} ...</echo>
       <task exec="RUSTC">
+        <parameter value="-A"/>
+        <parameter value="warnings"/>
        <parameter value="-o"/>
        <parameter value="&project;"/>
        <parameter variable="src"/>
