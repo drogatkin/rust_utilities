@@ -28,6 +28,9 @@ pub fn version() -> (&'static str, u32, &'static str) {
    }
 }
 
+# Result::unwrap consumes the result object, moving the entry out of the Result and into the return value.
+# Either unwrap once and store the resulting object in a variable (let entry = entry.unwrap();) or use Result::as_ref to borrow the object inside of the Result (entry.as_ref().unwrap().path()...)
+
 
 target build:. {
    dependency {
