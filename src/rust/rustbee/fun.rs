@@ -6,7 +6,7 @@ use std::io::{self, Write};
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BlockType {
     Main,
     Target,
@@ -105,6 +105,21 @@ impl GenBlockTup {
 }
 
 pub fn run(block: GenBlockTup, targets: &Vec<String>, arguments: &Vec<String>) -> io::Result<()> {
-    println!("processing for {}", block.0.borrow_mut().children.len());
+    let mut naked_block = block.0.borrow_mut();
+    let target = if targets.len() == 0 {
+        naked_block.children.reverse();
+        let mut tar_name = String::from("");
+        for ch in &naked_block.children {
+            let ch_block = ch.0.borrow();
+            if ch_block.block_type == BlockType::Target {
+                tar_name = ch_block.name.as_ref().unwrap().to_string();
+                break ;
+            }
+        }
+        tar_name
+    } else {
+        targets[0].to_string()
+    };
+    println!("processing for {} in {}", target, naked_block.children.len());
     Ok(())
 }
