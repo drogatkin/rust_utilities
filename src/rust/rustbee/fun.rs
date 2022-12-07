@@ -102,6 +102,29 @@ impl GenBlockTup {
         }
     }
 
+    pub fn eval_dep(&self) -> bool {
+        let mut dep = self.0.borrow_mut();
+        if dep.children.len() == 0 {
+            
+            return true
+        } else if dep.children.len() == 1 {
+            let mut dep_task = &dep.children[0];
+            let mut dep_block = dep_task.0.borrow_mut();
+            match dep_block.block_type {
+                BlockType::Function => {
+                    match dep_block.name.as_ref().unwrap().as_str() {
+                        "target" => {
+                            println!("evaluating target: {}", dep_block.params[0]);
+                          //  exec_target( );
+                        },
+                        _ => todo!()
+                    } 
+                },
+                _ => todo!()
+            }
+        }
+        false
+    }
 }
 
 pub fn run(block: GenBlockTup, targets: &Vec<String>, arguments: &Vec<String>) -> io::Result<()> {
@@ -121,5 +144,22 @@ pub fn run(block: GenBlockTup, targets: &Vec<String>, arguments: &Vec<String>) -
         targets[0].to_string()
     };
     println!("processing for {} in {}", target, naked_block.children.len());
+    for bl in &naked_block.children {
+        let clone_bl = bl.clone();
+        let ch_block = bl.0.borrow();
+        if ch_block.block_type == BlockType::Target && ch_block.name.as_ref().unwrap().to_string() == target { 
+            println!("target: {}", exec_target(&ch_block));
+        }
+    }
     Ok(())
+}
+
+pub fn exec_target(target: &GenBlock) -> bool {
+  //  let mut naked_block = target.0.borrow_mut();
+    // dependencies
+    let mut need_exec = false;
+    for dep in &target.deps {
+        need_exec |= dep.eval_dep();
+    }
+    need_exec
 }

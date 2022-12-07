@@ -6,6 +6,7 @@ RUSTC=/home/dmitriy/AndroidStudioProjects/rust/build/x86_64-unknown-linux-gnu/st
 src=main.rs
 include(env);
 display(Shell ${Shell})
+fake rb=${project}-1
 
 target version update : . {
    dependency {
@@ -55,8 +56,8 @@ target run :.: {
     }
     dependency {true}
     {
-        exec project (
-        ..
+        exec fake rb (
+        ~args~
        )
    }
 }
