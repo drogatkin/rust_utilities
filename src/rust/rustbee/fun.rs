@@ -70,8 +70,13 @@ impl GenBlockTup {
         result
     }
 
+    pub fn add_var(&self, name: String, val: VarVal) -> Option<VarVal> {
+        let mut current_bl = self.0.borrow_mut();
+        current_bl.vars.insert(name, val)
+    }
+
     pub fn search_up(&self, name: &String) -> Option<VarVal> {
-        let current_bl = self.0.borrow_mut();
+        let current_bl = self.0.borrow();
        // let mut current_vars = current_bl.vars;
         let var = current_bl.vars.get(name);
         match var {
@@ -94,8 +99,11 @@ impl GenBlockTup {
         GenBlockTup(Rc::clone(&self.0))
     }
 
-    pub fn parent(&self) -> Option<GenBlockTup> {
-        if let Some(parent) = &self.0.borrow_mut().parent {
+    pub fn parent(& self) -> Option<GenBlockTup> {
+        println!("parrent --a");
+        let bl = self.0.borrow();
+        println!("parrent -in {:?}", bl.name);
+        if let Some(parent) = &bl.parent {
             Some(parent.clone())
         } else {
             None
@@ -103,21 +111,28 @@ impl GenBlockTup {
     }
 
     pub fn eval_dep(&self) -> bool {
-        let mut dep = self.0.borrow_mut();
+        let dep = self.0.borrow();
         if dep.children.len() == 0 {
             
             return true
         } else if dep.children.len() == 1 {
-            let mut dep_task = &dep.children[0];
-            let mut dep_block = dep_task.0.borrow_mut();
+            let dep_task = &dep.children[0];
+            let dep_block = dep_task.0.borrow();
             match dep_block.block_type {
                 BlockType::Function => {
                     match dep_block.name.as_ref().unwrap().as_str() {
                         "target" => {
                             println!("evaluating target: {}", dep_block.params[0]);
-                          //  exec_target( );
+                            let mut target = self.get_target(dep_block.params[0].to_string());
+                            match target {
+                                Some(target) => {
+                                    let target_bor = target.0.borrow();
+                                    exec_target(&target_bor);
+                                },
+                                _ => ()
+                            }
                         },
-                        _ => todo!()
+                        _ => todo!("function: {:?}", dep_block.name)
                     } 
                 },
                 _ => todo!()
@@ -125,18 +140,59 @@ impl GenBlockTup {
         }
         false
     }
+
+    
+
+    pub fn get_top_block(& self) -> GenBlockTup {
+        let mut curr =self.clone();
+        loop {
+            let mut parent = parent(curr.clone());
+            match parent {
+                None => return curr.clone(),
+                Some(parent) => {
+                    curr = parent;
+                }
+            }
+        }
+    }
+
+    pub fn get_target(&self, name: String) -> Option<GenBlockTup> {
+        let top_block = &self.get_top_block();
+        let naked_block = top_block.0.borrow();
+        for ch in &naked_block.children {
+            let ch_block = ch.0.borrow();
+            if ch_block.block_type == BlockType::Target {
+                if let Some(name1) = &ch_block.name {
+                    if *name1 == name {
+                       // tar_name = ch_block.name.as_ref().unwrap().to_string();
+                        return  Some(ch.clone());
+                     }
+                }
+            }
+        }
+        None
+    }
 }
 
-pub fn run(block: GenBlockTup, targets: &Vec<String>, arguments: &Vec<String>) -> io::Result<()> {
-    let mut naked_block = block.0.borrow_mut();
+pub fn parent(node: GenBlockTup) -> Option<GenBlockTup> {
+    let bl = node.0.borrow();
+    if let Some(parent) = &bl.parent {
+        Some(parent.clone())
+    } else {
+        None
+    }
+}
+
+pub fn run(block: GenBlockTup, targets: &Vec<String>) -> io::Result<()> {
+    let naked_block = block.0.borrow();
     let target = if targets.len() == 0 {
-        naked_block.children.reverse();
+        //naked_block.children.reverse();
         let mut tar_name = String::from("");
         for ch in &naked_block.children {
             let ch_block = ch.0.borrow();
             if ch_block.block_type == BlockType::Target {
                 tar_name = ch_block.name.as_ref().unwrap().to_string();
-                break ;
+                //break ;
             }
         }
         tar_name
@@ -155,7 +211,6 @@ pub fn run(block: GenBlockTup, targets: &Vec<String>, arguments: &Vec<String>) -
 }
 
 pub fn exec_target(target: &GenBlock) -> bool {
-  //  let mut naked_block = target.0.borrow_mut();
     // dependencies
     let mut need_exec = false;
     for dep in &target.deps {

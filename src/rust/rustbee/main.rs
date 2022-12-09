@@ -58,6 +58,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                options.push(CmdOption::Verbose);
           } else if arg.starts_with("-d") || arg.starts_with("-diagnostic") {
                options.push(CmdOption::Diagnostics);
+               env::set_var("RUST_BACKTRACE", "1");
           } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
                arg_n += 1;
                if arg_n < args.len() {
@@ -170,10 +171,13 @@ fn main() -> io::Result<()> {
      }
      
      let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
+     // add command arguments
+     let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
+     &lex_tree.add_var(String::from("~args~"), args);
      let exec_tree = lex_tree.clone();
      lex::process(&log, &path, lex_tree)?;
      let real_targets:Vec<String> = Vec::new();
-     fun::run(exec_tree, &real_targets, &run_args);
+     fun::run(exec_tree, &real_targets);
      io::stdout().flush()?;
      Ok(())
 }
