@@ -1,8 +1,13 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use lex::{Lexem, VarVal, VarType};
+use lex::{process_template_value, Lexem, VarVal, VarType};
 use std::io::{self, Write};
+use log::Log;
+use std::path::Path;
+use std::ffi::OsStr;
+use std::time::{Duration, SystemTime};
+use std::fs;
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
@@ -16,6 +21,9 @@ pub enum BlockType {
     Scope,
     Eq,
     Function,
+    Neq,
+    Then,
+
 }
 
 #[derive(Debug)]
@@ -100,9 +108,7 @@ impl GenBlockTup {
     }
 
     pub fn parent(& self) -> Option<GenBlockTup> {
-        println!("parrent --a");
         let bl = self.0.borrow();
-        println!("parrent -in {:?}", bl.name);
         if let Some(parent) = &bl.parent {
             Some(parent.clone())
         } else {
@@ -127,10 +133,19 @@ impl GenBlockTup {
                             match target {
                                 Some(target) => {
                                     let target_bor = target.0.borrow();
-                                    exec_target(&target_bor);
+                                    return exec_target(&target_bor);
+                                    
                                 },
                                 _ => ()
                             }
+                        },
+                        "anynewer" => {
+                            println!("evaluating allnewer: {}", dep_block.params.len());
+                            let log = Log {debug : false, verbose : false};
+                            let p1 = process_template_value(&log, &dep_block.params[0], self);
+                            let p2 = process_template_value(&log, &dep_block.params[1], self);
+                            println!("parameter: {}, {}", p1, p2);
+                            return exec_anynewer(self, &p1, &p2);
                         },
                         _ => todo!("function: {:?}", dep_block.name)
                     } 
@@ -141,12 +156,10 @@ impl GenBlockTup {
         false
     }
 
-    
-
     pub fn get_top_block(& self) -> GenBlockTup {
         let mut curr =self.clone();
         loop {
-            let mut parent = parent(curr.clone());
+            let mut parent = curr.parent();
             match parent {
                 None => return curr.clone(),
                 Some(parent) => {
@@ -170,15 +183,6 @@ impl GenBlockTup {
                 }
             }
         }
-        None
-    }
-}
-
-pub fn parent(node: GenBlockTup) -> Option<GenBlockTup> {
-    let bl = node.0.borrow();
-    if let Some(parent) = &bl.parent {
-        Some(parent.clone())
-    } else {
         None
     }
 }
@@ -217,4 +221,56 @@ pub fn exec_target(target: &GenBlock) -> bool {
         need_exec |= dep.eval_dep();
     }
     need_exec
+}
+
+pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {
+    false
+}
+
+pub fn newest(mask : &str) -> Option<SystemTime> {
+    let path1 = Path::new(mask);
+    let parent1 = path1.parent().unwrap(); // can be empty, check
+    let name1 = path1.file_name().unwrap();
+    let str_name1 = name1.to_str().unwrap();
+    let pos1 = str_name1.find('*');
+    return
+    if let Some(pos) = pos1 {
+        let mut last: Option<SystemTime> = None;
+        for entry in fs::read_dir(parent1).unwrap() {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.is_file() {
+                  if let Some(path1) = path.file_name() {
+                       if let Some(file_path) = path1.to_str() {
+                            if str_name1.len() == 1 {
+                                let current_last = last_modified(&path.into_os_string().into_string().unwrap());
+                                match last {
+                                    None => last = current_last,
+                                    Some(time) => {
+                                        if let Some(time2) = current_last {
+                                            if time2 > time {
+                                                last = current_last;
+                                            }
+                                        }
+                                    }
+                                }  
+                            } 
+                       }
+                  }
+             }
+        }
+        last
+    } else {
+        last_modified(path1.to_str().unwrap())
+    };
+}
+
+pub fn last_modified(file: &str) -> Option<SystemTime> {
+    let metadata = fs::metadata(file).expect("metadata call failed");
+
+    if let Ok(time) = metadata.modified() {
+        Some(time)
+    } else {
+        None
+    }
 }

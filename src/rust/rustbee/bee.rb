@@ -10,18 +10,19 @@ fake rb=${project}-1
 
 target version update : . {
    dependency {
-         allnewer(./*.rs,${project})
+         anynewer(./*.rs,${project})
    }
     dependency {
       eq {
         timestamp(ver.rs)
-        eval() # perhaps just omit it
+        #eval() # perhaps just omit it
      }
    }
    
    {
        display(Generating ver.rs)
-       now=now():fun
+       now()
+       now=${} #now():fun
        
        write(ver.rs:file,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
@@ -38,7 +39,7 @@ target build:. {
         target(version update)
    }
    dependency {
-       allnewer(bee-rust.xml,${project})
+       anynewer(bee-rust.xml,${project})
    }
    {
       display(Compiling ${src} ...)
@@ -47,6 +48,12 @@ target build:. {
            ${project},
            ${src}
        )
+     if {
+         neq(${}, 0)
+         then {
+            panic("compilation error(s)")
+         }
+     }
    }
 }
 

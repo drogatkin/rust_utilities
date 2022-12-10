@@ -269,12 +269,12 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             },
             '#' => {
                 match state {
-                    LexState::Begin | LexState::EndFunction => {
+                    LexState::Begin | LexState::EndFunction | LexState::Comment | LexState::BlankInValue => {
                         state = LexState::Comment;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             '\n' | '\r' => {
@@ -304,7 +304,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             '[' => {
@@ -442,7 +442,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             ')' => {
@@ -460,7 +460,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' => {
@@ -469,7 +469,12 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    LexState::StartParam | LexState::InParam => {
+                        state = LexState::InParam;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             ',' => {
@@ -523,7 +528,6 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
 
             },
             _ => {
-                //println!("{:?}", state);
                 match state {
                     LexState::InQtLex | LexState::InQtParam => {
                         buffer[buf_fill] = c;
@@ -741,7 +745,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
 }
 
-fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<String> {
+pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<String> {
     let mut buf = [' ';4096* 12];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
@@ -994,6 +998,21 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     },
                     "eq" => {
                         let mut inner_block = GenBlock::new(BlockType::Eq);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "if" => {
+                        let mut inner_block = GenBlock::new(BlockType::If);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "then" => {
+                        let mut inner_block = GenBlock::new(BlockType::Then);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "neq" => {
+                        let mut inner_block = GenBlock::new(BlockType::Neq);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
