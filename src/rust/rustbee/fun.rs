@@ -8,6 +8,7 @@ use std::path::Path;
 use std::ffi::OsStr;
 use std::time::{Duration, SystemTime};
 use std::fs;
+use fs::Metadata;
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
@@ -150,6 +151,31 @@ impl GenBlockTup {
                         _ => todo!("function: {:?}", dep_block.name)
                     } 
                 },
+                BlockType::Eq => {
+                    let len = dep_block.children.len();
+                    if len  > 0 {
+                        let p1 = &dep_block.children[0];
+                        let p1_block = p1.0.borrow();
+                        let r1 : Option<String> =
+                         match p1_block.block_type {
+                             BlockType::Function => {
+                                  eval_fun(&p1_block)
+                             },
+                             _ => { todo!("block: {:?}", dep_block.block_type);
+                                None
+                            }
+                        };
+                            let r2 =
+                            if len == 2 {
+                                None
+                            } else {
+                                None
+                            };
+                        r1 == r2
+                    } else {
+                        return false
+                    };
+                },
                 _ => todo!()
             }
         }
@@ -223,8 +249,36 @@ pub fn exec_target(target: &GenBlock) -> bool {
     need_exec
 }
 
+pub fn eval_fun(fun: &GenBlock) -> Option<String> {
+    if fun.block_type == BlockType::Function {
+        match fun.name.as_ref().unwrap().as_str() {
+            "timestamp" => {
+                return timestamp(&fun.params[0]);
+            },
+            _ => todo!("unreleased function: {:?}", fun.name)
+        }
+    }
+    None
+} 
+
+pub fn timestamp(p: &str) -> Option<String> {
+    let metadata  = fs::metadata(p);
+    if let Ok(metadata) = metadata {
+        if let Ok(time) = metadata.modified() {
+            Some(format!("{time:?}"))
+        } else {
+            None
+        }
+    } else {
+        None
+    }
+    
+}
+
 pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {
-    false
+    let t1 = newest(p1);
+    let t2 = newest(p2);
+    t1 > t2
 }
 
 pub fn newest(mask : &str) -> Option<SystemTime> {
@@ -232,7 +286,7 @@ pub fn newest(mask : &str) -> Option<SystemTime> {
     let parent1 = path1.parent().unwrap(); // can be empty, check
     let name1 = path1.file_name().unwrap();
     let str_name1 = name1.to_str().unwrap();
-    let pos1 = str_name1.find('*');
+    let pos1 = str_name1.find('*'); // TODO add checking for more *
     return
     if let Some(pos) = pos1 {
         let mut last: Option<SystemTime> = None;
@@ -242,7 +296,10 @@ pub fn newest(mask : &str) -> Option<SystemTime> {
             if path.is_file() {
                   if let Some(path1) = path.file_name() {
                        if let Some(file_path) = path1.to_str() {
-                            if str_name1.len() == 1 {
+                          if str_name1.len() == 1 || 
+                             (pos == 0 && file_path.ends_with(&str_name1[1..])) ||
+                             (pos == str_name1.len()-1 && file_path.starts_with(&str_name1[0..pos])) ||
+                             (file_path.starts_with(&str_name1[0..pos]) && file_path.ends_with(&str_name1[pos+1..]) && file_path.len() >= str_name1.len()) {
                                 let current_last = last_modified(&path.into_os_string().into_string().unwrap());
                                 match last {
                                     None => last = current_last,
@@ -253,8 +310,8 @@ pub fn newest(mask : &str) -> Option<SystemTime> {
                                             }
                                         }
                                     }
-                                }  
-                            } 
+                                }
+                             }    
                        }
                   }
              }
