@@ -27,7 +27,9 @@ enum CmdOption {
      Verbose,
      SearchUp(String),
      PropertyFile(String),
-     Diagnostics
+     Diagnostics,
+     ForceRebuild,
+     DryRun
 }
 
 fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Vec<&'a String>, Vec<String>) {
@@ -57,9 +59,13 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
             options.push(CmdOption::Version);
           } else if arg.starts_with("-v") || arg.starts_with("-verbose") {
                options.push(CmdOption::Verbose);
+          } else if arg.starts_with("-dry")  {
+               options.push(CmdOption::DryRun);
           } else if arg.starts_with("-d") || arg.starts_with("-diagnostic") {
                options.push(CmdOption::Diagnostics);
                env::set_var("RUST_BACKTRACE", "1");
+          } else if arg.starts_with("-r")  {
+               options.push(CmdOption::ForceRebuild);
           } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
                arg_n += 1;
                if arg_n < args.len() {
@@ -123,6 +129,10 @@ fn main() -> io::Result<()> {
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
      let (options, targets, run_args) = parse_command( &log, &args);
+     let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
+     // add command arguments
+     let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
+     &lex_tree.add_var(String::from("~args~"), args);
      for opt in options {
           //println!("{:?}", opt);
           match opt {
@@ -141,6 +151,14 @@ fn main() -> io::Result<()> {
                CmdOption::SearchUp(file) => {
                     log.log(&format!("Search: {}", file));
 
+               },
+               CmdOption::ForceRebuild => {
+                    let fb = lex::VarVal{val_type:lex::VarType::Bool, value: String::from("true"), values: Vec::new()};
+                    &lex_tree.add_var(String::from("~force-build-target~"), fb);
+               },
+               CmdOption::DryRun => {
+                    let dr = lex::VarVal{val_type:lex::VarType::Bool, value: String::from("true"), values: Vec::new()};
+                    &lex_tree.add_var(String::from("~dry-run~"), dr);
                },
                _ => ()
           }
@@ -172,10 +190,7 @@ fn main() -> io::Result<()> {
      }
      
      let sys_time = SystemTime::now();
-     let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
-     // add command arguments
-     let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
-     &lex_tree.add_var(String::from("~args~"), args);
+     
      let exec_tree = lex_tree.clone();
      lex::process(&log, &path, lex_tree)?;
      let real_targets:Vec<String> = Vec::new();

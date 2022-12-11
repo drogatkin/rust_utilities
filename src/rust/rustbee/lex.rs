@@ -25,6 +25,7 @@ pub enum VarType {
     Environment,
     Number,
     Date,
+    Bool,
     Eval,
     Function,
     Url,
@@ -780,6 +781,14 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
         _ => todo!("state: {:?}", state)
     }
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
+}
+
+fn process_fun_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<(String, String)> {
+    let mut buf = [' ';2048];
+    let mut name : String = "".to_string();
+    let mut sub_name : String = "".to_string();
+
+    Box::new((name.to_string(), sub_name.to_string()))
 }
 
 pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<String> {

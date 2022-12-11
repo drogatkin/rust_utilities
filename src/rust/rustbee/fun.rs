@@ -101,7 +101,6 @@ impl GenBlockTup {
                 return Some(VarVal{val_type: var.val_type.clone(), value: var.value.clone(), values: Vec::new()});
             }
         }
-        
     }
 
     pub fn clone(&self) -> GenBlockTup {
@@ -264,6 +263,10 @@ pub fn exec_target(target: &GenBlock) -> bool {
     let mut need_exec = false;
     for dep in &target.deps {
         need_exec |= dep.eval_dep();
+    }
+    let force_build = &target.parent.as_ref().unwrap().search_up(&"~force-build-target~".to_string());
+    if let Some(force_build) = force_build {
+        need_exec = true;
     }
     if need_exec {
         
