@@ -135,7 +135,6 @@ impl GenBlockTup {
                                 Some(target) => {
                                     let target_bor = target.0.borrow();
                                     return exec_target(&target_bor);
-                                    
                                 },
                                 _ => ()
                             }
@@ -211,6 +210,26 @@ impl GenBlockTup {
         }
         None
     }
+
+    pub fn exec(&self) -> Option<String> {
+        let naked_block = self.0.borrow();
+        println!("exec {:?} name: {:?}", naked_block.block_type, naked_block.name);
+        match naked_block.block_type {
+            BlockType::Scope => {
+                for child in &naked_block.children {
+                    child.exec();
+                }  
+            },
+            BlockType::Function => {
+                println!("function; {:?}", naked_block.name);
+                for param in &naked_block.params {
+                    println!("parameter; {}", param);
+                }  
+            },
+            _ => todo!("block: {:?}, {:?}", naked_block.block_type, naked_block.name)
+        }
+        None
+    }
 }
 
 pub fn run(log: &Log, block: GenBlockTup, targets: &Vec<String>) -> io::Result<()> {
@@ -245,6 +264,14 @@ pub fn exec_target(target: &GenBlock) -> bool {
     let mut need_exec = false;
     for dep in &target.deps {
         need_exec |= dep.eval_dep();
+    }
+    if need_exec {
+        
+        for child in &target.children {
+            child.exec();
+        }
+    } else {
+        println!("no need to run: {:?}", &target.name);
     }
     need_exec
 }
