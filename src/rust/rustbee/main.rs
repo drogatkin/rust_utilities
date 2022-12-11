@@ -11,6 +11,7 @@ use log::Log;
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
+use std::time::{Duration, SystemTime};
 
 mod help;
 mod ver;
@@ -170,6 +171,7 @@ fn main() -> io::Result<()> {
           return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
      }
      
+     let sys_time = SystemTime::now();
      let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
      // add command arguments
      let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
@@ -177,7 +179,13 @@ fn main() -> io::Result<()> {
      let exec_tree = lex_tree.clone();
      lex::process(&log, &path, lex_tree)?;
      let real_targets:Vec<String> = Vec::new();
-     fun::run(exec_tree, &real_targets);
+     fun::run(&log, exec_tree, &real_targets);
+     match sys_time.elapsed() {
+          Ok(elapsed) => {
+               log.log(&format!("Finished in {} sec(s)", elapsed.as_secs()));
+          },
+          _ =>  ()
+     }
      io::stdout().flush()?;
      Ok(())
 }

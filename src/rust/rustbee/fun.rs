@@ -213,7 +213,7 @@ impl GenBlockTup {
     }
 }
 
-pub fn run(block: GenBlockTup, targets: &Vec<String>) -> io::Result<()> {
+pub fn run(log: &Log, block: GenBlockTup, targets: &Vec<String>) -> io::Result<()> {
     let naked_block = block.0.borrow();
     let target = if targets.len() == 0 {
         //naked_block.children.reverse();
