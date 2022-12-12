@@ -387,7 +387,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     
                         return (Lexem::BlockEnd, state);
                     },
-                    LexState::InParam | LexState::InValue => {
+                    LexState::InParam | LexState::InValue | LexState::InQtParam => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -409,7 +409,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     LexState::EndFunction | LexState::BlockEnd => {
                         state = LexState::Begin; 
                     }, 
-                    LexState::Comment | LexState::InParam => {
+                    LexState::Comment | LexState::InParam | LexState::InQtParam => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     } ,
@@ -768,7 +768,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
         HdrState::InType => {
             lex_type = buf[0..pos].iter().collect();
         },
-        HdrState::InName => {
+        HdrState::InName | HdrState::InNameBlank => {
             name = buf[0..pos].iter().collect();
         },
         HdrState::InWork |  HdrState::PathDiv => {
@@ -781,14 +781,6 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
         _ => todo!("state: {:?}", state)
     }
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
-}
-
-fn process_fun_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<(String, String)> {
-    let mut buf = [' ';2048];
-    let mut name : String = "".to_string();
-    let mut sub_name : String = "".to_string();
-
-    Box::new((name.to_string(), sub_name.to_string()))
 }
 
 pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<String> {
@@ -948,11 +940,13 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 scoped_block.0.as_ref().borrow_mut().vars.insert(current_name.to_string(), c_b);
             },
             Lexem::Function(name) => {
+                // name can be function + main argument
+                let (type_hdr,name,work,path) = *process_lex_header(&log, &name, &scoped_block.0.as_ref().borrow_mut().vars) ;
                 let mut func = GenBlock::new(BlockType::Function);
                 //fun::GenBlockTup(Rc::new(RefCell::new(GenBlock::new(BlockType::Function))));
-                func.name = Some(name);
+                func.name = Some(type_hdr);
+                func.flex = if name.is_empty() {None} else { Some(name)};
                 scoped_block = scoped_block.add(GenBlockTup(Rc::new(RefCell::new(func))));
-             
             },
             Lexem::Type(var_type) => {
                 let mut bl = scoped_block.0.as_ref().borrow_mut();

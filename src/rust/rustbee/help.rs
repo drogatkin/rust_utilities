@@ -1,4 +1,3 @@
-
 pub fn get_help() -> String {
     let help = r#"
 rb [target [target2 [target3] ...]] [options] [-- parameter1 [...parameter2..]]
@@ -21,7 +20,8 @@ Options:
   -f       <file>        ''
   -keep-going, -k        execute all targets that do not depend
                          on failed target(s)
-  -r                     re-evaluate all variables for every target in a list
+  -dry-run         do not launch any executable, but show all run parameters
+  -r                     execute all targets accordingly dependencies even when not required
   -D<property>=<value>   use a value for a given property name
   -propertyfile <name>   load all properties from file with -D
                          properties taking precedence

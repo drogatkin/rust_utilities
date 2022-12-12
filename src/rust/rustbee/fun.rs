@@ -9,6 +9,10 @@ use std::ffi::OsStr;
 use std::time::{Duration, SystemTime};
 use std::fs;
 use fs::Metadata;
+use std::fs::File;
+use std::io::prelude::*;
+//extern crate chrono;
+//use chrono::prelude::{DateTime, Utc};
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
@@ -211,23 +215,67 @@ impl GenBlockTup {
     }
 
     pub fn exec(&self) -> Option<String> {
-        let naked_block = self.0.borrow();
+        let  naked_block = self.0.borrow();
         println!("exec {:?} name: {:?}", naked_block.block_type, naked_block.name);
         match naked_block.block_type {
             BlockType::Scope => {
+                //let vars = &naked_block.vars;
                 for child in &naked_block.children {
-                    child.exec();
+                    let res = child.exec();
+                    match res {
+                        Some(val) => {
+                           // &naked_block.vars.insert("~~".to_string(), VarVal{val_type: VarType::Generic, value: val, values: Vec::new()});
+                            //child.add_var("~~".to_string(), VarVal{val_type: VarType::Generic, value: val, values: Vec::new()});
+                        },
+                        _ => ()
+                    }
                 }  
             },
             BlockType::Function => {
-                println!("function; {:?}", naked_block.name);
+               /* println!("function; {:?}", naked_block.name);
                 for param in &naked_block.params {
                     println!("parameter; {}", param);
-                }  
+                }  */
+                
+                let res = self.exec_fun(&naked_block);
+                return res;
+                
+                     
             },
             _ => todo!("block: {:?}, {:?}", naked_block.block_type, naked_block.name)
         }
         None
+    }
+
+    pub fn exec_fun(&self, fun_block: &GenBlock) -> Option<String> {
+        let log = Log {debug : false, verbose : false};
+        match fun_block.name.as_ref().unwrap().as_str() {
+            "display" => {
+                println!("{}", self.parameter(&log, 0, fun_block));
+            },
+            "now" => {
+                let now = SystemTime::now();
+                return Some(format!("{:?}", now));
+            },
+            "write" => {
+                let fname = self.parameter(&log, 0, fun_block);
+                let mut f =  File::create(*fname) .expect("Error encountered while creating file!");
+                let mut i = 1;
+                let N = fun_block.params.len();
+                while  i < N {
+                    write!(f, "{}", self.parameter(&log, i, fun_block)).expect("Error in writing file!");
+                   i += 1;
+                }
+        
+            },
+            _ => todo!("unimplemented func: {:?}", fun_block.name)
+        }
+        None
+    }
+
+    pub fn parameter(&self, log: &Log, i: usize, fun_block: &GenBlock) -> Box<String> {
+
+        process_template_value(&log, &fun_block.params[i], self)
     }
 }
 
