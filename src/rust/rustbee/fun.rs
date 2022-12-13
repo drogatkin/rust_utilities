@@ -13,6 +13,7 @@ use std::fs::File;
 use std::io::prelude::*;
 //extern crate chrono;
 //use chrono::prelude::{DateTime, Utc};
+use std::process::Command;
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
@@ -84,12 +85,13 @@ impl GenBlockTup {
     }
 
     pub fn add_var(&self, name: String, val: VarVal) -> Option<VarVal> {
+        println!("borrow_mut()"        );
         let mut current_bl = self.0.borrow_mut();
         current_bl.vars.insert(name, val)
     }
 
     pub fn search_up(&self, name: &String) -> Option<VarVal> {
-        let current_bl = self.0.borrow();
+        let  current_bl = self.0.borrow();
        // let mut current_vars = current_bl.vars;
         let var = current_bl.vars.get(name);
         match var {
@@ -120,7 +122,7 @@ impl GenBlockTup {
         }
     }
 
-    pub fn eval_dep(&self) -> bool {
+    pub fn eval_dep(&self, prev_res: &Option<String>) -> bool {
         let dep = self.0.borrow();
         if dep.children.len() == 0 {
             
@@ -145,8 +147,8 @@ impl GenBlockTup {
                         "anynewer" => {
                             println!("evaluating allnewer: {}", dep_block.params.len());
                             let log = Log {debug : false, verbose : false};
-                            let p1 = process_template_value(&log, &dep_block.params[0], self);
-                            let p2 = process_template_value(&log, &dep_block.params[1], self);
+                            let p1 = process_template_value(&log, &dep_block.params[0], self, prev_res);
+                            let p2 = process_template_value(&log, &dep_block.params[1], self, prev_res);
                             println!("parameter: {}, {}", p1, p2);
                             return exec_anynewer(self, &p1, &p2);
                         },
@@ -161,7 +163,7 @@ impl GenBlockTup {
                         let r1 : Option<String> =
                          match p1_block.block_type {
                              BlockType::Function => {
-                                  eval_fun(&p1_block)
+                                p1.exec_fun(&p1_block, prev_res)
                              },
                              _ => { todo!("block: {:?}", dep_block.block_type);
                                 None
@@ -214,30 +216,24 @@ impl GenBlockTup {
         None
     }
 
-    pub fn exec(&self) -> Option<String> {
-        let  naked_block = self.0.borrow();
-        println!("exec {:?} name: {:?}", naked_block.block_type, naked_block.name);
+    pub fn exec(&self, prev_res: &Option<String>) -> Option<String> {
+        let naked_block = self.0.borrow();
+        println!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res);
         match naked_block.block_type {
             BlockType::Scope => {
-                //let vars = &naked_block.vars;
+                let mut res = prev_res.clone();
                 for child in &naked_block.children {
-                    let res = child.exec();
-                    match res {
-                        Some(val) => {
-                           // &naked_block.vars.insert("~~".to_string(), VarVal{val_type: VarType::Generic, value: val, values: Vec::new()});
-                            //child.add_var("~~".to_string(), VarVal{val_type: VarType::Generic, value: val, values: Vec::new()});
-                        },
-                        _ => ()
-                    }
+                    res = child.exec(&res);
                 }  
+            },
+            BlockType::If => {
             },
             BlockType::Function => {
                /* println!("function; {:?}", naked_block.name);
                 for param in &naked_block.params {
                     println!("parameter; {}", param);
                 }  */
-                
-                let res = self.exec_fun(&naked_block);
+                let res = self.exec_fun(&naked_block, prev_res);
                 return res;
                 
                      
@@ -247,35 +243,52 @@ impl GenBlockTup {
         None
     }
 
-    pub fn exec_fun(&self, fun_block: &GenBlock) -> Option<String> {
+    pub fn exec_fun(&self, fun_block: &GenBlock, res_prev: &Option<String>) -> Option<String> {
         let log = Log {debug : false, verbose : false};
         match fun_block.name.as_ref().unwrap().as_str() {
             "display" => {
-                println!("{}", self.parameter(&log, 0, fun_block));
+                println!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
             "now" => {
                 let now = SystemTime::now();
+                //let val = format!("{:?}", now);
+                
+              //  self.add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: val.to_string(), values: Vec::new()});
                 return Some(format!("{:?}", now));
             },
             "write" => {
-                let fname = self.parameter(&log, 0, fun_block);
+                let fname = self.parameter(&log, 0, fun_block, res_prev);
                 let mut f =  File::create(*fname) .expect("Error encountered while creating file!");
                 let mut i = 1;
                 let N = fun_block.params.len();
                 while  i < N {
-                    write!(f, "{}", self.parameter(&log, i, fun_block)).expect("Error in writing file!");
+                    write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).expect("Error in writing file!");
                    i += 1;
                 }
         
+            },
+            "exec" => {
+                let status = Command::new(fun_block.flex.as_ref().unwrap())
+                .args(["-l", "-a"])
+                .status().expect("ls command failed to start");
+                match status.code() {
+                    Some(code) => {
+                        return Some(code.to_string());},
+                        //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
+                    None       => println!("Process terminated by signal")
+                }
+            },
+            "timestamp" => {
+                return timestamp(&self.parameter(&log, 0, fun_block, res_prev));
             },
             _ => todo!("unimplemented func: {:?}", fun_block.name)
         }
         None
     }
 
-    pub fn parameter(&self, log: &Log, i: usize, fun_block: &GenBlock) -> Box<String> {
+    pub fn parameter(&self, log: &Log, i: usize, fun_block: &GenBlock, res_prev: &Option<String>) -> Box<String> {
 
-        process_template_value(&log, &fun_block.params[i], self)
+        process_template_value(&log, &fun_block.params[i], self, res_prev)
     }
 }
 
@@ -306,11 +319,11 @@ pub fn run(log: &Log, block: GenBlockTup, targets: &Vec<String>) -> io::Result<(
     Ok(())
 }
 
-pub fn exec_target(target: &GenBlock) -> bool {
+pub fn exec_target(target: &GenBlock /*, res_prev: &Option<String>*/) -> bool {
     // dependencies
     let mut need_exec = false;
     for dep in &target.deps {
-        need_exec |= dep.eval_dep();
+        need_exec |= dep.eval_dep(&None);
     }
     let force_build = &target.parent.as_ref().unwrap().search_up(&"~force-build-target~".to_string());
     if let Some(force_build) = force_build {
@@ -319,24 +332,12 @@ pub fn exec_target(target: &GenBlock) -> bool {
     if need_exec {
         
         for child in &target.children {
-            child.exec();
+            child.exec(&None);
         }
     } else {
         println!("no need to run: {:?}", &target.name);
     }
     need_exec
-}
-
-pub fn eval_fun(fun: &GenBlock) -> Option<String> {
-    if fun.block_type == BlockType::Function {
-        match fun.name.as_ref().unwrap().as_str() {
-            "timestamp" => {
-                return timestamp(&fun.params[0]);
-            },
-            _ => todo!("unreleased function: {:?}", fun.name)
-        }
-    }
-    None
 } 
 
 pub fn timestamp(p: &str) -> Option<String> {

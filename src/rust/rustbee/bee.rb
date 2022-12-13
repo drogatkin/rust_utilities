@@ -29,7 +29,7 @@ target build:. {
            ${src}
        )
      if {
-         neq(${}, 0)
+         neq(${~~}, 0)
          then {
             panic("compilation error(s)")
          }
@@ -63,11 +63,11 @@ target version update : . {
    {
        display(Generating ver.rs)
        now()
-       now=${~~} #now():fun
+       #now=${~~} #now():fun
        
        write(ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.01\", 1, & \"",${now},"\")
+      (&\"1.00.01\", 1, & \"",${~~},"\")
       }")  # or !now() inline
    }
 }

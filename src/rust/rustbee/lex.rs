@@ -100,7 +100,7 @@ enum HdrState {
 #[derive(Debug)]
 pub struct VarVal {
     pub val_type: VarType,
-    pub value: String,
+    pub value: String, // TODO make it enum based on type
     pub values: Vec<String>,
 }
 
@@ -387,7 +387,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     
                         return (Lexem::BlockEnd, state);
                     },
-                    LexState::InParam | LexState::InValue | LexState::InQtParam => {
+                    LexState::InParam | LexState::InValue | LexState::InQtParam | LexState::Comment => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -783,8 +783,8 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
 }
 
-pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Box<String> {
-    let mut buf = [' ';4096* 12];
+pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup, res_prev: &Option<String>) -> Box<String> {
+    let mut buf = [' ';4096* 1];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
     let chars = value.chars();
@@ -838,7 +838,15 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup) -> Bo
                         state = TemplateState::InVal;
                         let var : String = buf_var[0..name_pos].iter().collect();
                         //println!("looking {}", var);
-                        match vars.search_up(&var) {
+// check name for ~~ and then use global thread local
+let res = if var == "~~" {
+   // println!("prev op par {:?}", res_prev);
+    match res_prev {
+        None => None,
+        Some(val) => Some(VarVal{val_type: VarType::Generic, value: val.to_string(), values: Vec::new()})
+    } 
+} else {vars.search_up(&var)};
+                        match res {
                             Some(var) => {
                                // println!("found {:?}", var);
                                match var.val_type {
@@ -946,6 +954,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 //fun::GenBlockTup(Rc::new(RefCell::new(GenBlock::new(BlockType::Function))));
                 func.name = Some(type_hdr);
                 func.flex = if name.is_empty() {None} else { Some(name)};
+                func.dir = if work.is_empty() {None} else { Some(work)};
                 scoped_block = scoped_block.add(GenBlockTup(Rc::new(RefCell::new(func))));
             },
             Lexem::Type(var_type) => {
@@ -990,7 +999,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
-                                println!("{}", *process_template_value(&log, &value, &scoped_block));
+                                println!("{}", *process_template_value(&log, &value, &scoped_block, &None));
                             },
                             "include" => {
                                 match scoped_block.search_up(&value) {
