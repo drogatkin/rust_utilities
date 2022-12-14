@@ -11,12 +11,13 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 	31,
 	30,
 	31];
-	let long_days = duration_sec / 86400;
-    let mut days : u32 = long_days as u32;
+
+    let mut days : u32 = (duration_sec / 86400) as u32;
     let mut sec_in_day = (duration_sec % 86400) as u32;
     let mut mins_in_day = sec_in_day / 60;
     let mut sec_in_min = sec_in_day % 60;
     let hour_in_day = mins_in_day / 60;
+	let min_in_hour = mins_in_day % 60;
 	let mut curr_year = epoch_year;
 	
 	if days > year_len(curr_year) {
@@ -41,7 +42,7 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 			current_month += 1;
 		}
 	}
-	(curr_year+1, current_month+1, days, hour_in_day, mins_in_day, sec_in_min)
+	(curr_year+1, current_month+1, days, hour_in_day, min_in_hour, sec_in_min)
 }
 
 #[inline]
