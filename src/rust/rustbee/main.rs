@@ -84,6 +84,8 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                arg_n += 1;
                if arg_n < args.len() {
                     run_args.extend_from_slice( &args[arg_n..]);
+                    
+                    break;
                }
           } else {
                targets.push(arg);
@@ -133,7 +135,9 @@ fn main() -> io::Result<()> {
      let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
      // add command arguments
      let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
+     
      &lex_tree.add_var(String::from("~args~"), args);
+     println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
      for opt in options {
           //println!("{:?}", opt);
           match opt {

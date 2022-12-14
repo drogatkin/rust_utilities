@@ -86,7 +86,7 @@ impl GenBlockTup {
     }
 
     pub fn add_var(&self, name: String, val: VarVal) -> Option<VarVal> {
-        println!("borrow_mut()"        );
+       // println!("borrow_mut()"        );
         let mut current_bl = self.0.borrow_mut();
         current_bl.vars.insert(name, val)
     }
@@ -105,7 +105,11 @@ impl GenBlockTup {
                 }
             },
             Some(var) => {
-                return Some(VarVal{val_type: var.val_type.clone(), value: var.value.clone(), values: Vec::new()});
+                let mut newvec = Vec::new(); // perhaps overhead, find a better solution
+                for  newval in &var.values {
+                    newvec.push(newval.clone());
+                }
+                return Some(VarVal{val_type: var.val_type.clone(), value: var.value.clone(), values: newvec});
             }
         }
     }
@@ -296,6 +300,7 @@ impl GenBlockTup {
                 for i in 0..fun_block.params.len() {
                     let param = &fun_block.params[i];
                     let val = self.search_up(&param);
+                    println!("search: {:?} {:?}", fun_block.params, val);
                     if let Some(param) = val {
                         if param.values.len() > 0 {
                             for param in param.values {
@@ -311,7 +316,8 @@ impl GenBlockTup {
                 }
                 let dry_run = self.search_up(&"~dry-run~".to_string());
                 if let Some(dry_run) = dry_run {
-                   println!("exec: {} {:?}", exec, params);
+                   println!("exec: {:?} {:?}", exec, params);
+                   return Some("0".to_string());
                 } else {
                     let status = Command::new(exec)
                     .args(params)

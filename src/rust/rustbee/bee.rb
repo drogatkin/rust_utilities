@@ -8,18 +8,6 @@ include(env);
 display(Shell ${Shell})
 fake rb=${project}-1
 
-target run :.: {
-    dependency {
-        target(build)
-    }
-    dependency {true}
-    {
-        exec fake rb (
-        ~args~
-       )
-   }
-}
-
 target version update : . {
    dependency {
          anynewer(./*.rs,${project})
@@ -37,7 +25,7 @@ target version update : . {
        
        write(ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.01-preview\", 1, & \"",${~~},"\")
+      (&\"1.00.01-preview\", 2, & \"",${~~},"\")
       }")  # or !now() inline
    }
 }
@@ -62,5 +50,17 @@ target build:. {
             panic("compilation error(s)")
          }
      }
+   }
+}
+
+target run :.: {
+    dependency {
+        target(build)
+    }
+    dependency {true}
+    {
+        exec fake rb (
+        ~args~
+       )
    }
 }
