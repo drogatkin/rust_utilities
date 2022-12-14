@@ -14,6 +14,7 @@ use std::io::prelude::*;
 //extern crate chrono;
 //use chrono::prelude::{DateTime, Utc};
 use std::process::Command;
+use time;
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
@@ -250,11 +251,10 @@ impl GenBlockTup {
                 println!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
             "now" => {
-                let now = SystemTime::now();
-                //let val = format!("{:?}", now);
-                
-              //  self.add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: val.to_string(), values: Vec::new()});
-                return Some(format!("{:?}", now));
+              let secs = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
+              let (y,m,d,h,min,s) = time:: get_datetime(1970, secs.as_secs());
+              
+              return Some(format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s));
             },
             "write" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);

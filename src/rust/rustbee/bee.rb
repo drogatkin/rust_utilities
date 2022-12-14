@@ -8,11 +8,39 @@ include(env);
 display(Shell ${Shell})
 fake rb=${project}-1
 
+target run :.: {
+    dependency {
+        target(build)
+    }
+    dependency {true}
+    {
+        exec fake rb (
+        ~args~
+       )
+   }
+}
 
-
-# Result::unwrap consumes the result object, moving the entry out of the Result and into the return value.
-# Either unwrap once and store the resulting object in a variable (let entry = entry.unwrap();) or use Result::as_ref to borrow the object inside of the Result (entry.as_ref().unwrap().path()...)
-
+target version update : . {
+   dependency {
+         anynewer(./*.rs,${project})
+   }
+    dependency {
+      eq {
+        timestamp(ver.rs)
+        # none
+     }
+   }
+   
+   {
+       display(Generating ver.rs)
+       now()
+       
+       write(ver.rs,"// auto generated
+pub fn version() -> (&'static str, u32, &'static str) {
+      (&\"1.00.01-preview\", 1, & \"",${~~},"\")
+      }")  # or !now() inline
+   }
+}
 
 target build:. {
    dependency {
@@ -34,40 +62,5 @@ target build:. {
             panic("compilation error(s)")
          }
      }
-   }
-}
-
-target run :.: {
-    dependency {
-        target(build)
-    }
-    dependency {true}
-    {
-        exec fake rb (
-        ~args~
-       )
-   }
-}
-
-target version update : . {
-   dependency {
-         anynewer(./*.rs,${project})
-   }
-    dependency {
-      eq {
-        timestamp(ver.rs)
-        #eval() # perhaps just omit it
-     }
-   }
-   
-   {
-       display(Generating ver.rs)
-       now()
-       #now=${~~} #now():fun
-       
-       write(ver.rs,"// auto generated
-pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.01\", 1, & \"",${~~},"\")
-      }")  # or !now() inline
    }
 }

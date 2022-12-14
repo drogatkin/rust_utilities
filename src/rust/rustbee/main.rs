@@ -18,6 +18,7 @@ mod ver;
 mod log;
 mod lex;
 mod fun;
+mod time;
 
 #[derive(Debug)]
 enum CmdOption {

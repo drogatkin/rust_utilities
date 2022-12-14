@@ -838,14 +838,14 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup, res_p
                         state = TemplateState::InVal;
                         let var : String = buf_var[0..name_pos].iter().collect();
                         //println!("looking {}", var);
-// check name for ~~ and then use global thread local
-let res = if var == "~~" {
-   // println!("prev op par {:?}", res_prev);
-    match res_prev {
-        None => None,
-        Some(val) => Some(VarVal{val_type: VarType::Generic, value: val.to_string(), values: Vec::new()})
-    } 
-} else {vars.search_up(&var)};
+                        // check name for ~~ and then use global thread local
+                        let res = if var == "~~" {
+                        // println!("prev op par {:?}", res_prev);
+                            match res_prev {
+                                None => None,
+                                Some(val) => Some(VarVal{val_type: VarType::Generic, value: val.to_string(), values: Vec::new()})
+                            } 
+                        } else {vars.search_up(&var)};
                         match res {
                             Some(var) => {
                                // println!("found {:?}", var);
@@ -991,15 +991,17 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                   if let Some(name1) = &rl_block.name {
                     name = Some(name1.clone());
                   }
-                  
-                }
+               }  
+                
                
                 if state2 == LexState::EndFunction {
-                    {
+                    
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
-                                println!("{}", *process_template_value(&log, &value, &scoped_block, &None));
+                               // if scoped_block.block_type == BlockType::Main {
+                                    println!("{}", *process_template_value(&log, &value, &scoped_block, &None));
+                              //  }
                             },
                             "include" => {
                                 match scoped_block.search_up(&value) {
@@ -1023,12 +1025,13 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                             },
                             _ => ()
                         }
-                    } }
+                    } 
                     let parent_block =  Rc::clone(&scoped_block.0);
                     let pp2 = parent_block.as_ref().borrow_mut();
                     let pp1 = pp2.parent.as_ref().unwrap();
                     let pp = &pp1.0;
                     scoped_block = GenBlockTup(Rc::clone(pp));
+                   
                 } 
  
             },
