@@ -221,13 +221,23 @@ impl GenBlockTup {
         let naked_block = self.0.borrow();
         println!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res);
         match naked_block.block_type {
-            BlockType::Scope => {
+            BlockType::Scope | BlockType::Then => {
                 let mut res = prev_res.clone();
                 for child in &naked_block.children {
                     res = child.exec(&res);
                 }  
             },
             BlockType::If => {
+                let children = &naked_block.children;
+                let res = children[0].exec(prev_res);
+                println!("neq {:?}", res);
+                if res.unwrap_or("false".to_string()) == "true" {
+                    children[1].exec(prev_res);
+                } else if children.len() == 3 {
+                    children[2].exec(prev_res);
+                } else if children.len() > 3 {
+                    println!("unexpected block(s) {}", children.len());
+                }
             },
             BlockType::Function => {
                /* println!("function; {:?}", naked_block.name);
@@ -266,6 +276,15 @@ impl GenBlockTup {
                    i += 1;
                 }
             },
+            "neq" => {
+                println!("comparing {:?} and {:?}", self.parameter(&log, 0, fun_block, res_prev), self.parameter(&log, 1, fun_block, res_prev));
+
+                return if self.parameter(&log, 0, fun_block, res_prev) == self.parameter(&log, 1, fun_block, res_prev) {
+                    Some("false".to_string())
+                } else {
+                    Some("true".to_string())
+                };
+            },
             "exec" => {
                 let mut exec : String  = fun_block.flex.as_ref().unwrap().to_string();
                 // look for var first
@@ -275,7 +294,20 @@ impl GenBlockTup {
                 }
                 let mut params: Vec<String> = Vec::new();
                 for i in 0..fun_block.params.len() {
-                    params.push(*self.parameter(&log, i, fun_block, res_prev));
+                    let param = &fun_block.params[i];
+                    let val = self.search_up(&param);
+                    if let Some(param) = val {
+                        if param.values.len() > 0 {
+                            for param in param.values {
+                                params.push(param); 
+                            }
+                        } else {
+                            params.push(param.value);
+                        }
+                    } else {
+                        params.push(*self.parameter(&log, i, fun_block, res_prev));
+                    }
+                    
                 }
                 let dry_run = self.search_up(&"~dry-run~".to_string());
                 if let Some(dry_run) = dry_run {
@@ -294,6 +326,9 @@ impl GenBlockTup {
             },
             "timestamp" => {
                 return timestamp(&self.parameter(&log, 0, fun_block, res_prev));
+            },
+            "panic" => {
+                panic!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
             _ => todo!("unimplemented func: {:?}", fun_block.name)
         }

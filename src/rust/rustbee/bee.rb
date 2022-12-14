@@ -47,7 +47,7 @@ target build:. {
         target(version update)
    }
    dependency {
-       anynewer(bee-rust.xml,${project})
+       anynewer(bee.rb,${project})
    }
    {
       display(Compiling ${src} ...)

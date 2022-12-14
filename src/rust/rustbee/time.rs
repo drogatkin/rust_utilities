@@ -23,10 +23,10 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 	if days > year_len(curr_year) {
 		loop {
 			days -= year_len(curr_year);
+			curr_year += 1;
 			if days < year_len(curr_year) {
 				break ;
 			}
-			curr_year += 1;
 		}
 	}
 	if year_len(curr_year) == 366 {
@@ -42,7 +42,7 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 			current_month += 1;
 		}
 	}
-	(curr_year+1, current_month+1, days, hour_in_day, min_in_hour, sec_in_min)
+	(curr_year, current_month+1, days, hour_in_day, min_in_hour, sec_in_min)
 }
 
 #[inline]
