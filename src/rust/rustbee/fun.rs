@@ -265,18 +265,32 @@ impl GenBlockTup {
                     write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).expect("Error in writing file!");
                    i += 1;
                 }
-        
             },
             "exec" => {
-                let status = Command::new(fun_block.flex.as_ref().unwrap())
-                .args(["-l", "-a"])
-                .status().expect("ls command failed to start");
-                match status.code() {
-                    Some(code) => {
-                        return Some(code.to_string());},
-                        //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
-                    None       => println!("Process terminated by signal")
+                let mut exec : String  = fun_block.flex.as_ref().unwrap().to_string();
+                // look for var first
+                match self.search_up(&exec) {
+                    Some(exec1) => { exec = exec1.value.to_string();},
+                    None => ()
                 }
+                let mut params: Vec<String> = Vec::new();
+                for i in 0..fun_block.params.len() {
+                    params.push(*self.parameter(&log, i, fun_block, res_prev));
+                }
+                let dry_run = self.search_up(&"~dry-run~".to_string());
+                if let Some(dry_run) = dry_run {
+                   println!("exec: {} {:?}", exec, params);
+                } else {
+                    let status = Command::new(exec)
+                    .args(params)
+                    .status().expect("ls command failed to start");
+                    match status.code() {
+                        Some(code) => {
+                            return Some(code.to_string());},
+                            //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
+                        None       => println!("Process terminated by signal")
+                    }
+               }
             },
             "timestamp" => {
                 return timestamp(&self.parameter(&log, 0, fun_block, res_prev));
