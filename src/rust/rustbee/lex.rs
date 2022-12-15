@@ -160,7 +160,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buf_fill += 1;
                     },
                     LexState::InQtLex => {
-                        let lexstr: String = buffer[0..buf_fill].iter().collect();
+                        //let lexstr: String = buffer[0..buf_fill].iter().collect();
                         state = LexState::IgnoredBlankToEnd;
                     },
                     LexState::Escape => {
@@ -351,7 +351,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             },
             '{' => {
                 match state {
-                    LexState::InQtLex | LexState::InParam => {
+                    LexState::InValue | LexState::InQtParam | LexState::InQtLex | LexState::InParam | LexState::Comment => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -362,14 +362,6 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     LexState::BlockEnd | LexState::Begin => {
                         state = LexState::BlockStart;
                         return (Lexem::BlockHdr("".to_string()), state);
-                    },
-                    LexState::Comment => {
-                        buffer[buf_fill] = c;
-                        buf_fill += 1;
-                    },
-                    LexState::InValue | LexState::InQtParam | LexState::InParam=> {
-                        buffer[buf_fill] = c;
-                        buf_fill += 1;
                     },
                     LexState::InParamBlank => {
                         state = LexState::InParam;
@@ -687,12 +679,12 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                     HdrState::InNameBlank => {
                         blank_cnt += 1;
                     },
-                    HdrState::WorkDiv | HdrState::PathDiv => {},
+                   // HdrState::WorkDiv | HdrState::PathDiv => {},
                     HdrState::InWork | HdrState::InPath => {
                         buf[pos] = c;
                         pos += 1;
                     },
-                    _ => todo!("state: {:?}", state)
+                   // _ => todo!("state: {:?}", state)
                 }
 
             },
@@ -759,7 +751,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         buf[pos] = c;
                         pos += 1;
                     },
-                    _ => todo!("state: {:?}", state)
+                    //_ => todo!("state: {:?}", state)
                 }
             }
         }
@@ -926,7 +918,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
     };
     
     //let mut func_stack = Vec::new();
-    let mut block_stack : Vec<&mut GenBlock> = Vec::new();
+    //let mut block_stack : Vec<&mut GenBlock> = Vec::new();
     let mut state = LexState::Begin;
     // current block
     let mut scoped_block = block; 

@@ -14,8 +14,8 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 
     let mut days : u32 = (duration_sec / 86400) as u32;
     let mut sec_in_day = (duration_sec % 86400) as u32;
-    let mut mins_in_day = sec_in_day / 60;
-    let mut sec_in_min = sec_in_day % 60;
+    let mins_in_day = sec_in_day / 60;
+    let sec_in_min = sec_in_day % 60;
     let hour_in_day = mins_in_day / 60;
 	let min_in_hour = mins_in_day % 60;
 	let mut curr_year = epoch_year;

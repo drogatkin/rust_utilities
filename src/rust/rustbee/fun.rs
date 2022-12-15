@@ -1,18 +1,13 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use lex::{process_template_value, Lexem, VarVal, VarType};
+use lex::{process_template_value, Lexem, VarVal};
 use std::io::{self, Write};
 use log::Log;
 use std::path::Path;
-use std::ffi::OsStr;
-use std::time::{Duration, SystemTime};
+use std::time::{ SystemTime};
 use std::fs;
-use fs::Metadata;
 use std::fs::File;
-use std::io::prelude::*;
-//extern crate chrono;
-//use chrono::prelude::{DateTime, Utc};
 use std::process::Command;
 use time;
 
@@ -171,12 +166,17 @@ impl GenBlockTup {
                                 p1.exec_fun(&p1_block, prev_res)
                              },
                              _ => { todo!("block: {:?}", dep_block.block_type);
-                                None
                             }
                         };
-                            let r2 =
+                            let r2 : Option<String> =
                             if len == 2 {
-                                None
+                                  match p1_block.block_type {
+                                    BlockType::Function => {
+                                        p1.exec_fun(&p1_block, prev_res)
+                                    },
+                                    _ => { todo!("block: {:?}", dep_block.block_type);
+                                    }
+                                }
                             } else {
                                 None
                             };
@@ -347,30 +347,35 @@ impl GenBlockTup {
     }
 }
 
-pub fn run(log: &Log, block: GenBlockTup, targets: &Vec<String>) -> io::Result<()> {
+pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Result<()> {
     let naked_block = block.0.borrow();
-    let target = if targets.len() == 0 {
-        //naked_block.children.reverse();
-        let mut tar_name = String::from("");
+   
+    if targets.len() == 0 { 
+        let mut tar_name : Option<String> = None;
         for ch in &naked_block.children {
             let ch_block = ch.0.borrow();
             if ch_block.block_type == BlockType::Target {
-                tar_name = ch_block.name.as_ref().unwrap().to_string();
-                //break ;
+                tar_name = Some(ch_block.name.as_ref().unwrap().to_string());
             }
         }
-        tar_name
-    } else {
-        targets[0].to_string()
-    };
-    println!("processing for {} in {}", target, naked_block.children.len());
-    for bl in &naked_block.children {
-        let clone_bl = bl.clone();
-        let ch_block = bl.0.borrow();
-        if ch_block.block_type == BlockType::Target && ch_block.name.as_ref().unwrap().to_string() == target { 
-            println!("target: {}", exec_target(&ch_block));
+        if tar_name == None {
+            panic!("No target found in the build script");
+        } else {
+            targets.push(tar_name.unwrap());
         }
     }
+    log.log(&format!("targets: {:?}", targets));
+    for target in targets {
+        log.log(&format!("processing for {} in {}", target, naked_block.children.len()));
+        for bl in &naked_block.children {
+           // let clone_bl = bl.clone();
+            let ch_block = bl.0.borrow();
+            if ch_block.block_type == BlockType::Target && ch_block.name.as_ref().unwrap() == target { 
+                log.log(&format!("target: {}", exec_target(&ch_block)));
+            }
+        }
+    }
+    
     Ok(())
 }
 
@@ -381,7 +386,7 @@ pub fn exec_target(target: &GenBlock /*, res_prev: &Option<String>*/) -> bool {
         need_exec |= dep.eval_dep(&None);
     }
     let force_build = &target.parent.as_ref().unwrap().search_up(&"~force-build-target~".to_string());
-    if let Some(force_build) = force_build {
+    if let Some(_force_build) = force_build {
         need_exec = true;
     }
     if need_exec {

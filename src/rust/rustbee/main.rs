@@ -8,10 +8,9 @@ use std::io::{self, Write};
 use std::io::{Error, ErrorKind};
 use log::Log;
 //use regex::Regex;
-use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use std::time::{Duration, SystemTime};
+use std::time::{SystemTime};
 
 mod help;
 mod ver;
@@ -87,7 +86,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     
                     break;
                }
-          } else {
+          } else if arg_n > 0 {
                targets.push(arg);
           }
          
@@ -132,12 +131,16 @@ fn main() -> io::Result<()> {
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
      let (options, targets, run_args) = parse_command( &log, &args);
+
      let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
      // add command arguments
      let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
-     
+     let mut real_targets: Vec<String> = Vec::new();
+     for target in targets {
+          real_targets.push(target.to_string());
+     }
      &lex_tree.add_var(String::from("~args~"), args);
-     println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
+     //println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
      for opt in options {
           //println!("{:?}", opt);
           match opt {
@@ -198,8 +201,8 @@ fn main() -> io::Result<()> {
      
      let exec_tree = lex_tree.clone();
      lex::process(&log, &path, lex_tree)?;
-     let real_targets:Vec<String> = Vec::new();
-     fun::run(&log, exec_tree, &real_targets);
+      
+     fun::run(&log, exec_tree, &mut real_targets);
      match sys_time.elapsed() {
           Ok(elapsed) => {
                log.log(&format!("Finished in {} sec(s)", elapsed.as_secs()));

@@ -8,6 +8,13 @@ include(env);
 display(Shell ${Shell})
 fake rb=${project}-1
 
+target clean {
+    dependency {true}
+    exec rm  (
+        project
+    )
+}
+
 target version update : . {
    dependency {
          anynewer(./*.rs,${project})
