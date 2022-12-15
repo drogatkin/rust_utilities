@@ -25,6 +25,7 @@ target install {
             }
             else {
                 display(Installing...)
+                exec cp(${project},/usr/local/bin)
             }
         }
     }

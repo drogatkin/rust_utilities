@@ -924,7 +924,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
     let mut scoped_block = block; 
     let mut current_name = "".to_string();
     while state != LexState::End {
-        let (mut lex, mut state2) = read_lex(log, &mut all_chars, state);
+        let ( lex, mut state2) = read_lex(log, &mut all_chars, state);
         log.debug(&format!("Lex: {:?}, line: {}/{}, state: {:?}", lex, all_chars.line, all_chars.line_offset, state2));
         match lex {
             Lexem::EOF => {
@@ -1040,37 +1040,47 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "eq" => {
-                        let mut inner_block = GenBlock::new(BlockType::Eq);
+                        let  inner_block = GenBlock::new(BlockType::Eq);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "if" => {
-                        let mut inner_block = GenBlock::new(BlockType::If);
+                        let inner_block = GenBlock::new(BlockType::If);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "then" => {
-                        let mut inner_block = GenBlock::new(BlockType::Then);
+                        let inner_block = GenBlock::new(BlockType::Then);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "neq" => {
-                        let mut inner_block = GenBlock::new(BlockType::Neq);
+                        let inner_block = GenBlock::new(BlockType::Neq);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "else" => {
-                        let mut inner_block = GenBlock::new(BlockType::Else);
+                        let inner_block = GenBlock::new(BlockType::Else);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "or" => {
+                        let inner_block = GenBlock::new(BlockType::Or);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "and" => {
+                        let inner_block = GenBlock::new(BlockType::And);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "" => {
-                        let mut inner_block = GenBlock::new(BlockType::Scope);
+                        let inner_block = GenBlock::new(BlockType::Scope);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));// *scoped_block = GenBlock::new(BlockType::Scope);
                     },
                     "dependency" => {
-                        let mut inner_block = GenBlock::new(BlockType::Dependency);
+                        let inner_block = GenBlock::new(BlockType::Dependency);
         
                         scoped_block =  scoped_block.add_dep(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },

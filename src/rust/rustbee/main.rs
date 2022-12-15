@@ -139,7 +139,7 @@ fn main() -> io::Result<()> {
      for target in targets {
           real_targets.push(target.to_string());
      }
-     &lex_tree.add_var(String::from("~args~"), args);
+     let _ = &lex_tree.add_var(String::from("~args~"), args);
      //println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
      for opt in options {
           //println!("{:?}", opt);
@@ -162,11 +162,11 @@ fn main() -> io::Result<()> {
                },
                CmdOption::ForceRebuild => {
                     let fb = lex::VarVal{val_type:lex::VarType::Bool, value: String::from("true"), values: Vec::new()};
-                    &lex_tree.add_var(String::from("~force-build-target~"), fb);
+                    let _ = &lex_tree.add_var(String::from("~force-build-target~"), fb);
                },
                CmdOption::DryRun => {
                     let dr = lex::VarVal{val_type:lex::VarType::Bool, value: String::from("true"), values: Vec::new()};
-                    &lex_tree.add_var(String::from("~dry-run~"), dr);
+                    let _ = &lex_tree.add_var(String::from("~dry-run~"), dr);
                },
                _ => ()
           }
