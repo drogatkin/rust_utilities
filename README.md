@@ -13,3 +13,9 @@ Linux gives a good set utilities for hex view of a file, for example od. I work 
 So I came with specific requirements to view such files. As result, I implemented od applying my requirements.
 I named the app as HexView.
 
+## RB
+
+The topic of build scripts will never end. It is an intermediate complexity app which is always a fun to build.
+I did one for Java called as [7Bee](https://github.com/drogatkin/7Bee). So I used it for building Rust projects too,
+but not anymore. RB is a Rust clone of the build tool with an updated syntax and some fun features.
+
