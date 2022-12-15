@@ -25,7 +25,7 @@ pub enum BlockType {
     Function,
     Neq,
     Then,
-
+    Else,
 }
 
 #[derive(Debug)]
@@ -225,7 +225,7 @@ impl GenBlockTup {
         let naked_block = self.0.borrow();
         println!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res);
         match naked_block.block_type {
-            BlockType::Scope | BlockType::Then => {
+            BlockType::Scope | BlockType::Then | BlockType::Else => {
                 let mut res = prev_res.clone();
                 for child in &naked_block.children {
                     res = child.exec(&res);

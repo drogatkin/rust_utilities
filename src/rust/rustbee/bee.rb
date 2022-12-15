@@ -15,6 +15,22 @@ target clean {
     )
 }
 
+target install {
+    dependency {true}
+    {
+        if {
+            neq(${User}, root)
+            then {
+                display(Please run the script as an administrator)
+            }
+            else {
+                display(Installing...)
+            }
+        }
+    }
+    
+}
+
 target version update : . {
    dependency {
          anynewer(./*.rs,${project})

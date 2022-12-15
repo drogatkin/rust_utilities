@@ -189,7 +189,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             },
             ' ' | '\t' => {
                 match state {
-                    LexState::Begin | LexState::BlockStart=> (),
+                    LexState::Begin | LexState::BlockStart => (),
                     LexState::QuotedStart => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
@@ -219,7 +219,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::StartValue | LexState::EndFunction => {
+                    LexState::StartValue | LexState::EndFunction | LexState::Block => {
 
                     },
                     LexState::InValue => {
@@ -235,7 +235,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     LexState::StartParam => {
 
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
 
             },
@@ -266,7 +266,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buf_fill += 1;
                     },
                     LexState::End => break,
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             '#' => {
@@ -1056,6 +1056,11 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     },
                     "neq" => {
                         let mut inner_block = GenBlock::new(BlockType::Neq);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "else" => {
+                        let mut inner_block = GenBlock::new(BlockType::Else);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
