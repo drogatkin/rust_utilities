@@ -17,6 +17,6 @@ impl Log {
     }
 
     pub fn error(&self, msg: &str) {
-        println!("Error: {}", msg);
+        println!("\x1b[0;31mError: {}\x1b[0m", msg);
     }   
 }

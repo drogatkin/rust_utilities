@@ -82,6 +82,8 @@ target run :.: {
     }
     dependency {true}
     {
+        timestamp(${project})
+        display(last build ${~~})
         exec fake rb (
         ~args~
        )

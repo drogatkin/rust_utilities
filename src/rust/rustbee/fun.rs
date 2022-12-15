@@ -265,10 +265,8 @@ impl GenBlockTup {
                 println!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
             "now" => {
-              let secs = SystemTime::now().duration_since(SystemTime::UNIX_EPOCH).unwrap();
-              let (y,m,d,h,min,s) = time:: get_datetime(1970, secs.as_secs());
               
-              return Some(format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s));
+              return Some(format_system_time(SystemTime::now()));
             },
             "write" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
@@ -406,7 +404,7 @@ pub fn timestamp(p: &str) -> Option<String> {
     let metadata  = fs::metadata(p);
     if let Ok(metadata) = metadata {
         if let Ok(time) = metadata.modified() {
-            Some(format!("{time:?}"))
+            Some(format_system_time(time))
         } else {
             None
         }
@@ -414,6 +412,13 @@ pub fn timestamp(p: &str) -> Option<String> {
         None
     }
     
+}
+
+pub fn format_system_time(time: SystemTime) -> String {
+    let dur = time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
+    let (y,m,d,h,min,s) = time:: get_datetime(1970, dur.as_secs());
+              
+    format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s) 
 }
 
 pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {

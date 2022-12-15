@@ -219,7 +219,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::StartValue | LexState::EndFunction | LexState::Block => {
+                    LexState::StartValue | LexState::EndFunction | LexState::BlockEnd => {
 
                     },
                     LexState::InValue => {

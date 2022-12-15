@@ -42,12 +42,12 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 			current_month += 1;
 		}
 	}
-	(curr_year, current_month+1, days, hour_in_day, min_in_hour, sec_in_min)
+	(curr_year, current_month+1, days+1, hour_in_day, min_in_hour, sec_in_min)
 }
 
 #[inline]
 fn year_len(year:u32) -> u32 {
-	if (year%4) == 0 && (year%100) != 0 {
+	if (year%4) == 0 && (year%100) != 0 || (year%400) == 0 {
 		366
 	} else {
 		365
