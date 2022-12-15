@@ -984,16 +984,15 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     name = Some(name1.clone());
                   }
                }  
-                
-               
                 if state2 == LexState::EndFunction {
                     
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
-                               // if scoped_block.block_type == BlockType::Main {
+                                let parent_scoped_block = scoped_block.parent().unwrap();
+                                if parent_scoped_block.0.borrow().block_type == BlockType::Main {
                                     println!("{}", *process_template_value(&log, &value, &scoped_block, &None));
-                              //  }
+                                }
                             },
                             "include" => {
                                 match scoped_block.search_up(&value) {

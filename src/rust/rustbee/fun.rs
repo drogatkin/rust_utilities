@@ -372,8 +372,10 @@ pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Resu
             let ch_block = bl.0.borrow();
             if ch_block.block_type == BlockType::Target && ch_block.name.as_ref().unwrap() == target { 
                 log.log(&format!("target: {}", exec_target(&ch_block)));
+                continue;
             }
         }
+        log.error(&format!("No target {} found", target));
     }
     
     Ok(())
