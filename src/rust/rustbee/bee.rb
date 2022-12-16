@@ -24,8 +24,17 @@ target install {
                 display(Please run the script as an administrator)
             }
             else {
-                display(Installing...)
-                exec cp(${project},/usr/local/bin)
+                ask(Are you going to instal the ${project}? [N/y],n)
+                if {
+                    or{
+                    eq(~~,y)
+                    eq(~~,Y)
+                    }
+                    then {
+                        display(Installing...)
+                        exec cp(${project},/usr/local/bin)
+                    }
+                }
             }
         }
     }

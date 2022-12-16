@@ -20,7 +20,6 @@ pub enum BlockType {
     Target,
     Dependency,
     If,
-    Expr,
     Scope,
     Eq,
     Function,
@@ -29,6 +28,7 @@ pub enum BlockType {
     Else,
     Or,
     And,
+    Not,
 }
 
 #[derive(Debug)]
@@ -243,7 +243,7 @@ impl GenBlockTup {
                 } else if children.len() == 3 {
                     children[2].exec(&log, prev_res);
                 } else if children.len() > 3 {
-                    log.debug(&format!("unexpected block(s) {}", children.len()));
+                    log.error(&format!("unexpected block(s) {}", children.len()));
                 }
             },
             BlockType::Function => {
@@ -275,6 +275,17 @@ impl GenBlockTup {
                    }
                 }
                 return Some("true".to_string());
+            },
+            BlockType::Not => {
+                let children = &naked_block.children;
+                if children.len() > 1 {
+                    log.error(&format!("unexpected block(s) {}", children.len()));
+                }
+                let res = children[0].exec(&log, prev_res).unwrap_or("false".to_string());
+                if res == "false" {
+                    return Some("true".to_string());
+               }
+               return Some("false".to_string());
             },
             _ => todo!("block: {:?}, {:?}", naked_block.block_type, naked_block.name)
         }
@@ -308,6 +319,16 @@ impl GenBlockTup {
                     Some("false".to_string())
                 } else {
                     Some("true".to_string())
+                };
+            },
+            "eq" => {
+                // TODO reuse common code with neq
+                log.debug(&format!("comparing {:?} and {:?}", self.parameter(&log, 0, fun_block, res_prev), self.parameter(&log, 1, fun_block, res_prev)));
+
+                return if self.parameter(&log, 0, fun_block, res_prev) == self.parameter(&log, 1, fun_block, res_prev) {
+                    Some("true".to_string())
+                } else {
+                    Some("false".to_string())
                 };
             },
             "exec" => {
@@ -369,10 +390,45 @@ impl GenBlockTup {
                 return Some("true".to_string());
             },
             "cropname" => {
-                
+                let param = *self.parameter(&log, 0, fun_block, res_prev); 
             },
             "filename" => {
-                
+                let param = *self.parameter(&log, 0, fun_block, res_prev);
+                let dot_pos = param.rfind('.');
+                let slash_pos = param.rfind('/');
+                match slash_pos {
+                    None => {
+                        match dot_pos {
+                            Some(dot_pos) => {
+                                return Some(param[0..dot_pos].to_string());
+                            },
+                            None => return Some(param),
+                        }
+                    },
+                    Some(slash_pos) => {
+                        match dot_pos {
+                            Some(dot_pos) => {
+                                return Some(param[slash_pos..dot_pos].to_string());
+                            },
+                            None => return Some(param[slash_pos..].to_string())
+                        }
+                    }
+                }
+            },
+            "ask" => {
+                let len = fun_block.params.len();
+                if len > 0 {
+                    print!("{} ", *self.parameter(&log, 0, fun_block, res_prev));
+                    io::stdout().flush().unwrap();
+                }
+                let mut user_input = String::new();
+                let stdin = io::stdin();
+                stdin.read_line(&mut user_input);
+                if user_input.len() == 0 && len > 1 {
+                    user_input = *self.parameter(&log, 1, fun_block, res_prev);
+                }
+                println!("");
+                return Some(user_input);
             },
             "timestamp" => {
                 return timestamp(&self.parameter(&log, 0, fun_block, res_prev));

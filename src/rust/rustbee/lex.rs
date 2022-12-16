@@ -219,6 +219,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::InType => {
+                        state = LexState::Begin;
+                        return (Lexem::Type(buffer[0..buf_fill].iter().collect()), state);
+                    },
                     LexState::StartValue | LexState::EndFunction | LexState::BlockEnd => {
 
                     },
@@ -346,6 +350,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             },
             ']' => {
                 match state {
+                    LexState::Comment | LexState::InValue | LexState::InParam => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -644,7 +652,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             state = LexState::End;
             return (Lexem::Type(buffer[0..buf_fill].iter().collect()), state);
         },
-        _ => todo!()
+        LexState::Comment => {
+            state = LexState::End;
+            return (Lexem::Comment(buffer[0..buf_fill].iter().collect()), state);
+        },
+        _ => todo!("state: {:?} at {}", state, reader.line)
     }
     (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state)
 }
@@ -964,6 +976,12 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                                 let c_b = VarVal{val_type:VarType::Environment, value:var.value.clone(), values: Vec::new()};
                                 bl.vars.insert(current_name.to_string(), c_b);
                             },
+                            "rep-rust" => {
+                                //let at_pos = 
+                                //  println!("env {} in {:?}", var.value, bl.block_type);
+                                  let c_b = VarVal{val_type:VarType::RepositoryRust, value:var.value.clone(), values: Vec::new()};
+                                  bl.vars.insert(current_name.to_string(), c_b);
+                              },
                             _ => ()
                         }
                         
@@ -1071,6 +1089,11 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     },
                     "and" => {
                         let inner_block = GenBlock::new(BlockType::And);
+        
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "not" => {
+                        let inner_block = GenBlock::new(BlockType::Not);
         
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
