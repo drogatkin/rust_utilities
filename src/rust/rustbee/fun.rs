@@ -343,7 +343,7 @@ impl GenBlockTup {
                 for i in 0..fun_block.params.len() {
                     let param = &fun_block.params[i];
                     let val = self.search_up(&param);
-                    // TODO add resolving using lasr result ~~
+                    // TODO add resolving using last result ~~
                     log.debug(&format!("search: {:?} {:?}", fun_block.params, val));
                     if let Some(param) = val {
                         if param.values.len() > 0 {

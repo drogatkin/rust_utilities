@@ -96,8 +96,8 @@ target build:. {
    {
       display(Compiling ${src} ...)
        exec RUSTC::  (
-           -L,
-           crate=${crates dir},
+        -L,
+        ${crates dir},
            -o,
            ${project},
            ${src}

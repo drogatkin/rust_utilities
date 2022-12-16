@@ -63,6 +63,8 @@ pub fn version() -> (&amp;'static str, u32, &amp;'static str) {
       <task exec="RUSTC">
         <parameter value="-A"/>
         <parameter value="warnings"/>
+         <parameter value="-L"/>
+        <parameter value=".crates"/>
        <parameter value="-o"/>
        <parameter value="&project;"/>
        <parameter variable="src"/>
