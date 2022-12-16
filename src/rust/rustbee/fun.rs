@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
-use lex::{process_template_value, Lexem, VarVal};
+use lex::{process_template_value, Lexem, VarVal, VarType};
 use std::io::{self, Write};
 use log::Log;
 use std::path::Path;
@@ -171,7 +171,7 @@ impl GenBlockTup {
                              _ => { todo!("block: {:?}", dep_block.block_type);
                             }
                         };
-                            let r2 : Option<String> =
+                        let r2 : Option<String> =
                             if len == 2 {
                                   match p1_block.block_type {
                                     BlockType::Function => {
@@ -183,7 +183,8 @@ impl GenBlockTup {
                             } else {
                                 None
                             };
-                        r1 == r2
+                            log.debug(&format!("comparing: {:?} and {:?}", r1, r2));
+                        return r1 == r2;
                     } else {
                         return false
                     };
@@ -342,6 +343,7 @@ impl GenBlockTup {
                 for i in 0..fun_block.params.len() {
                     let param = &fun_block.params[i];
                     let val = self.search_up(&param);
+                    // TODO add resolving using lasr result ~~
                     log.debug(&format!("search: {:?} {:?}", fun_block.params, val));
                     if let Some(param) = val {
                         if param.values.len() > 0 {
@@ -438,6 +440,20 @@ impl GenBlockTup {
                 return fs::read_to_string(*fname)
                 .ok();
             },
+            "as_url" => {
+               let param = self.search_up(&fun_block.params[0]);
+               log.debug(&format!{"param: {:?}", param});
+               if let Some(param) = param {
+                   match param.val_type {
+                    VarType::RepositoryRust => {
+                        if let Some(pos) = param.value.find('@') {
+                            return Some(format!("https://crates.io/api/v1/crates/{}/{}/download", &param.value[0..pos], &param.value[pos+1..]));
+                        }
+                    },
+                    _ => ()
+                   }
+               }
+            },
             "panic" => {
                 panic!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
@@ -497,7 +513,6 @@ pub fn exec_target(log: &Log, target: &GenBlock /*, res_prev: &Option<String>*/)
         need_exec = true;
     }
     if need_exec {
-        
         for child in &target.children {
             child.exec(&log, &None);
         }
@@ -518,7 +533,6 @@ pub fn timestamp(p: &str) -> Option<String> {
     } else {
         None
     }
-    
 }
 
 pub fn format_system_time(time: SystemTime) -> String {

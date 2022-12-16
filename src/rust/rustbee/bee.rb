@@ -7,6 +7,7 @@ src=main.rs
 include(env);
 display(Shell ${Shell})
 fake rb=${project}-1
+crates dir=.crates
 
 target clean {
     dependency {true}
@@ -41,6 +42,25 @@ target install {
     
 }
 
+target dependecies {
+    dependency {
+      eq {
+        timestamp(${crates dir}/http-0.2.8.crate)
+        # none
+      }
+    }
+    {
+        display(Creating a crate dir)
+        exec mkdir (crates dir)
+        as_url(Http)
+        exec wget (
+            ${~~},
+            -O,
+            ${crates dir}/http-0.2.8.crate
+        )
+    }
+}
+
 target version update : . {
    dependency {
          anynewer(./*.rs,${project})
@@ -68,11 +88,16 @@ target build:. {
         target(version update)
    }
    dependency {
+        target(dependecies)
+    }
+   dependency {
        anynewer(bee.rb,${project})
    }
    {
       display(Compiling ${src} ...)
        exec RUSTC::  (
+           -L,
+           crate=${crates dir},
            -o,
            ${project},
            ${src}

@@ -457,7 +457,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::StartValue; 
                         return (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state);
                     },
-                    LexState::Comment  => {
+                    LexState::Comment | LexState::InParam => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     } ,
