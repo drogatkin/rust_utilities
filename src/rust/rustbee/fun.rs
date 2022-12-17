@@ -294,7 +294,6 @@ impl GenBlockTup {
     }
 
     pub fn exec_fun(&self, log: &Log, fun_block: &GenBlock, res_prev: &Option<String>) -> Option<String> {
-        let log = Log {debug : false, verbose : false};
         match fun_block.name.as_ref().unwrap().as_str() {
             "display" => {
                 println!("{}", self.parameter(&log, 0, fun_block, res_prev));
@@ -336,7 +335,7 @@ impl GenBlockTup {
                 let mut exec : String  = fun_block.flex.as_ref().unwrap().to_string();
                 // look for var first
                 match self.search_up(&exec) {
-                    Some(exec1) => { exec = exec1.value.to_string();},
+                    Some(exec1) => { exec = *process_template_value(&log, &exec1.value, self, res_prev);},
                     None => ()
                 }
                 let mut params: Vec<String> = Vec::new();
@@ -359,17 +358,18 @@ impl GenBlockTup {
                 }
                 let dry_run = self.search_up(&"~dry-run~".to_string());
                 if let Some(dry_run) = dry_run {
-                   log.log(&format!("exec: {:?} {:?}", exec, params));
+                   // println!("command: {:?} {:?}", exec, params);
+                   log.log(&format!("command: {:?} {:?}", exec, params));
                    return Some("0".to_string());
                 } else {
-                    let status = Command::new(exec)
-                    .args(params)
-                    .status().expect("ls command failed to start");
+                    let status = Command::new(&exec)
+                    .args(&params)
+                    .status().expect(&format!("{} command with {:?} failed to start", exec, params));
                     match status.code() {
                         Some(code) => {
                             return Some(code.to_string());},
                             //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
-                        None       => println!("Process terminated by signal")
+                        None       => log.error(&format!("Process terminated by signal"))
                     }
                }
             },

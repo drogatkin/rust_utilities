@@ -1,10 +1,7 @@
 use std::fs;
 use std::env;
 use std::path::Path;
-//use std::path::PathBuf;
 use std::io::{self, Write};
-// use std::fs::File;
-//use std::str;
 use std::io::{Error, ErrorKind};
 use log::Log;
 //use regex::Regex;
