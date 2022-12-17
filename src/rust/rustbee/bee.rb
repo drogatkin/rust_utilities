@@ -28,8 +28,8 @@ target install {
                 ask(Are you going to instal the ${project}? [N/y],n)
                 if {
                     or{
-                    eq(~~,y)
-                    eq(~~,Y)
+                    eq(${~~},y)
+                    eq(${~~},Y)
                     }
                     then {
                         display(Installing...)

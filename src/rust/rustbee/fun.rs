@@ -426,6 +426,7 @@ impl GenBlockTup {
                 let mut user_input = String::new();
                 let stdin = io::stdin();
                 stdin.read_line(&mut user_input);
+                user_input = user_input.trim().to_string();
                 if user_input.len() == 0 && len > 1 {
                     user_input = *self.parameter(&log, 1, fun_block, res_prev);
                 }
