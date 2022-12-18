@@ -15,7 +15,9 @@ I named the app as HexView.
 
 ## RB
 
-The topic of build scripts will never end. It is an intermediate complexity app which is always a fun to build.
+The topic of build scripts will never end. It is an intermediate complexity app which always is a fun to build.
 I did one for Java called as [7Bee](https://github.com/drogatkin/7Bee). So I used it for building Rust projects too,
-but not anymore. RB is a Rust clone of the build tool with an updated syntax and some fun features.
+but not anymore. RB is a Rust clone of the build tool with an updated syntax and some fun features. It implements
+only a subset of the full 7Bee functionality, but it is enough to build my Rust projects. I decided to give a preview
+version to those who could be interested to continue the work.
 

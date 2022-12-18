@@ -12,16 +12,14 @@ Options:
   -lib <path>            specifies a path to search for jars and classes
   -logfile <file>        use given file for log
   -l     <file>          ''
-  -logger <classname>    the class which is to perform logging
-  -listener <classname>  add an instance of class as a project listener
   -noinput               do not allow interactive input
   -buildfile <file>      use given buildfile
   -file    <file>        ''
   -f       <file>        ''
   -keep-going, -k        execute all targets that do not depend
                          on failed target(s)
-  -dry-run         do not launch any executable, but show all run parameters
-  -r                     execute all targets accordingly dependencies even when not required
+  -dry-run               do not launch any executable, but show all run parameters
+  -r                     execute all targets accordingly dependencies anyway
   -D<property>=<value>   use a value for a given property name
   -propertyfile <name>   load all properties from file with -D
                          properties taking precedence
@@ -29,8 +27,6 @@ Options:
   -inputhandler <class>  the class which will handle input requests
   -find [<file>]         (s)earch for buildfile towards the root of 
   -s  [<file>]           the filesystem and use it 
-  -grammar <file>        use grammar defined in a file, DTD change can require /Java version only/
-  -g                     ''
   -targethelp            print all target names in a build file with descriptions/comments
   -th                    ''
   --                     separator of argumets passed to a built executable 
