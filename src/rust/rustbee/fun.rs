@@ -455,6 +455,14 @@ impl GenBlockTup {
                    }
                }
             },
+            "assign" => {
+                let name = *self.parameter(&log, 0, fun_block, res_prev);
+                let mut val = self.parameter(&log, 1, fun_block, res_prev);
+                match self.search_up(&val) {
+                    None => self.parent().unwrap().add_var(name, VarVal{val_type: VarType::Generic, value: *val, values: Vec::new()}),
+                    Some(val) => self.parent().unwrap().add_var(name, val),
+                };
+            },
             "panic" => {
                 panic!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },

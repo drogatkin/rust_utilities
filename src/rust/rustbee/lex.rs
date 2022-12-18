@@ -136,7 +136,7 @@ fn open(file: &str) -> io::Result<Reader> {
         reader : File::open(file)?,
         pos : 0,
         end : 0,
-        line : 0,
+        line : 1,
         line_offset : 0,
         buf : [0; 256],
     };
@@ -275,7 +275,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             },
             '#' => {
                 match state {
-                    LexState::Begin | LexState::EndFunction | LexState::Comment => {
+                    LexState::Begin | LexState::EndFunction | LexState::Comment | LexState::BlockStart => {
                         state = LexState::Comment;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
@@ -340,7 +340,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::InParamBlank => {
+                    LexState::InParamBlank | LexState::EndFunction | LexState::StartParam=> {
                         state = LexState::InParam;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
@@ -523,14 +523,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             },
             ',' => {
                 match state {
-                    LexState::InParam => {
+                    LexState::InParam | LexState::InParamBlank => {
                         
                         state = LexState::StartParam; 
                         return (Lexem::Parameter(buffer[0..buf_fill].iter().collect()), state);
-                    },
-                    LexState::InParamBlank  => {
-                        state = LexState::EndFunction; 
-                        return (Lexem::Parameter(buffer[0..last_nb].iter().collect()), state);
                     },
                     LexState::StartParam => {
                         state = LexState::InParam; 
@@ -1003,7 +999,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                   }
                }  
                 if state2 == LexState::EndFunction {
-                    
+                    log.debug(&format!("end func for {:?}", name));
                     if let Some(name) = name {
                         match name.as_str() {
                             "display" => {
@@ -1115,11 +1111,15 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 //println!(" current {:?}", scoped_block.0.borrow_mut().block_type);
                 let parent_block =  Rc::clone(&scoped_block.0);
                 let pp2 = parent_block.as_ref().borrow_mut();
-                let pp1 = pp2.parent.as_ref().unwrap();
-                let pp = &pp1.0;
-                scoped_block = GenBlockTup(Rc::clone(pp));
-               //${Shell}  println!(" to {:?}", scoped_block.0.borrow_mut().block_type);
-
+                log.debug(&format!("Closing block {:?} at {}/{}", pp2.block_type, all_chars.line, all_chars.line_offset));
+                match pp2.parent.as_ref() {
+                    None => log.error(&format!("Unmatched block {:?} closing found at {}:{}", pp2.block_type, all_chars.line, all_chars.line_offset)),
+                    Some(pp1) => {
+                        let pp = &pp1.0;
+                        scoped_block = GenBlockTup(Rc::clone(pp));
+                    }
+                }
+                
             },
             Lexem::Comment(value) => {
                 log.debug(&format!("Commentary: {}, line: {}/{}", value, all_chars.line, all_chars.line_offset));
