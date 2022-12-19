@@ -14,7 +14,7 @@ const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum VarType {
     Generic,
     Property,

@@ -265,9 +265,9 @@ impl GenBlockTup {
             },
             BlockType::Function => {
                 let naked_block = self.0.borrow();
-                println!("function; {:?}", naked_block.name);
+                log.debug(&format!("function; {:?}", naked_block.name));
                 for param in &naked_block.params {
-                    println!("parameter; {}", param);
+                    log.debug(&format!("parameter; {}", param));
                 } 
                 let res = self.exec_fun(&log, &naked_block, prev_res);
                 return res;
@@ -369,7 +369,7 @@ impl GenBlockTup {
                             for param in param.values {
                                 params.push(param); 
                             }
-                        } else {
+                        } else if param.val_type != VarType::Array {
                             params.push(param.value);
                         }
                     } else {
@@ -378,7 +378,6 @@ impl GenBlockTup {
                 }
                 let dry_run = self.search_up(&"~dry-run~".to_string());
                 if let Some(dry_run) = dry_run {
-                   // println!("command: {:?} {:?}", exec, params);
                    log.log(&format!("command: {:?} {:?}", exec, params));
                    return Some("0".to_string());
                 } else {
