@@ -234,6 +234,7 @@ impl GenBlockTup {
         //let naked_block = self.0.borrow();
         //log.debug(&format!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res));
         let block_type = self.0.borrow().block_type.clone();
+        log.debug(&format!("processing block {:?}", block_type));
         match  block_type {
             BlockType::Scope | BlockType::Then | BlockType::Else => {
                 let mut res = prev_res.clone();
@@ -489,11 +490,17 @@ impl GenBlockTup {
         let name = *self.parameter(&log, 0, fun_block, res_prev);
         let mut val = self.parameter(&log, 1, fun_block, res_prev);
         let parent = parent_block.parent.as_ref().unwrap();
-        let mut var_val = parent_block.vars.get(&name);
-        /*if var_val.is_none() {
-            var_val = parent.search_up(&val);
-        }*/
-        match var_val {
+        let  mut var_val = parent_block.vars.get(&name);
+        let mut var_val2 : Option<VarVal> = None;
+        if var_val.is_some() {
+            var_val2 = Some(var_val.unwrap().clone1());
+        } else {
+            let var_val3 = parent.search_up(&val);
+            if var_val3.is_some() {
+                var_val2 = Some(var_val3.unwrap().clone1());
+            }
+        }
+        match var_val2 {
             None => &parent_block.vars.insert(name, VarVal{val_type: VarType::Generic, value: *val, values: Vec::new()}),
             Some(val) => &parent_block.vars.insert(name, val.clone1()),
         };
