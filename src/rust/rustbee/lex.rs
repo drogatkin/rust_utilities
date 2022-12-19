@@ -60,7 +60,7 @@ enum LexState {
     InType,
     StartValue,
     InValue,
-    EndValue,
+  //  EndValue,
     RangeEnd,
     InParam,
     InParamBlank,
@@ -113,6 +113,11 @@ pub struct Reader {
     reader: File,
 }
 
+impl VarVal {
+    pub fn clone1(& self) -> VarVal {
+        VarVal{val_type: self.val_type.clone(), value: self.value.clone(), values: self.values.clone()}
+    }
+}
 
 impl Reader {
     fn next(&mut self) -> Option<char> {

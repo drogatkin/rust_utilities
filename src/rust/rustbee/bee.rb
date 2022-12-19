@@ -92,7 +92,7 @@ target run :.: {
     dependency {true}
     {
         ask(Would you like to run ${project}? [Y|n] , Y)
-        #assign(answer, ${~~})
+        assign(answer, ${~~})
         if {
             eq(${answer},Y)
             then {

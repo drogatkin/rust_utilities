@@ -14,7 +14,7 @@ use time;
 
 type FunCall = fn(Vec<Lexem>) -> Option<()>;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq,Clone)]
 pub enum BlockType {
     Main,
     Target,
@@ -107,7 +107,7 @@ impl GenBlockTup {
                 for  newval in &var.values {
                     newvec.push(newval.clone());
                 }
-                return Some(VarVal{val_type: var.val_type.clone(), value: var.value.clone(), values: newvec});
+                return Some(var.clone1());
             }
         }
     }
@@ -225,17 +225,32 @@ impl GenBlockTup {
         None
     }
 
-    pub fn exec(&self, log: &Log, prev_res: &Option<String>) -> Option<String> {
+    pub fn is_assign(&self) -> bool {
         let naked_block = self.0.borrow();
-        log.debug(&format!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res));
-        match naked_block.block_type {
+        naked_block.block_type == BlockType::Function && naked_block.name.is_some() && naked_block.name.as_ref().unwrap() == "assign"
+    }
+
+    pub fn exec(&self, log: &Log, prev_res: &Option<String>) -> Option<String> {
+        //let naked_block = self.0.borrow();
+        //log.debug(&format!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res));
+        let block_type = self.0.borrow().block_type.clone();
+        match  block_type {
             BlockType::Scope | BlockType::Then | BlockType::Else => {
                 let mut res = prev_res.clone();
-                for child in &naked_block.children {
-                    res = child.exec(&log, &res);
+                let children = &self.0.borrow().children.clone();
+                for child in children {
+                    if child.is_assign() {
+                        let child_block = child.0.borrow();
+                        let mut naked_block = self.0.borrow_mut();
+                        child.exec_assign(&log, &child_block, &mut naked_block, &res);
+                    } else {
+                        res = child.exec(&log, &res);
+                    }
+                    
                 }  
             },
             BlockType::If => {
+                let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 let res = children[0].exec(&log, prev_res);
                 log.debug(&format!("neq {:?}", res));
@@ -248,16 +263,18 @@ impl GenBlockTup {
                 }
             },
             BlockType::Function => {
-               /* println!("function; {:?}", naked_block.name);
+                let naked_block = self.0.borrow();
+                println!("function; {:?}", naked_block.name);
                 for param in &naked_block.params {
                     println!("parameter; {}", param);
-                }  */
+                } 
                 let res = self.exec_fun(&log, &naked_block, prev_res);
                 return res;
                 
                      
             },
             BlockType::Or => {
+                let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 for child in children {
                     let res = child.exec(&log, prev_res).unwrap_or("false".to_string());
@@ -268,6 +285,7 @@ impl GenBlockTup {
                 return Some("false".to_string());
             },
             BlockType::And => {
+                let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 for child in children {
                     let res = child.exec(&log, prev_res).unwrap_or("false".to_string());
@@ -278,6 +296,7 @@ impl GenBlockTup {
                 return Some("true".to_string());
             },
             BlockType::Not => {
+                let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 if children.len() > 1 {
                     log.error(&format!("unexpected block(s) {}", children.len()));
@@ -288,12 +307,12 @@ impl GenBlockTup {
                }
                return Some("false".to_string());
             },
-            _ => todo!("block: {:?}, {:?}", naked_block.block_type, naked_block.name)
+            _ => todo!("block: {:?}, {:?}", self.0.borrow().block_type, self.0.borrow().name)
         }
         None
     }
 
-    pub fn exec_fun(&self, log: &Log, fun_block: &GenBlock, res_prev: &Option<String>) -> Option<String> {
+    pub fn exec_fun(&self, log: &Log, fun_block: & GenBlock, res_prev: &Option<String>) -> Option<String> {
         match fun_block.name.as_ref().unwrap().as_str() {
             "display" => {
                 println!("{}", self.parameter(&log, 0, fun_block, res_prev));
@@ -456,18 +475,28 @@ impl GenBlockTup {
                }
             },
             "assign" => {
-                let name = *self.parameter(&log, 0, fun_block, res_prev);
-                let mut val = self.parameter(&log, 1, fun_block, res_prev);
-                match self.search_up(&val) {
-                    None => self.parent().unwrap().add_var(name, VarVal{val_type: VarType::Generic, value: *val, values: Vec::new()}),
-                    Some(val) => self.parent().unwrap().add_var(name, val),
-                };
+                log.error(&format!("assign function has to be called as exec_assign"));
             },
             "panic" => {
                 panic!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
             _ => todo!("unimplemented func: {:?}", fun_block.name)
         }
+        None
+    }
+
+    pub fn exec_assign(&self, log: &Log, fun_block: &GenBlock, parent_block: &mut GenBlock, res_prev: &Option<String>) -> Option<String> {
+        let name = *self.parameter(&log, 0, fun_block, res_prev);
+        let mut val = self.parameter(&log, 1, fun_block, res_prev);
+        let parent = parent_block.parent.as_ref().unwrap();
+        let mut var_val = parent_block.vars.get(&name);
+        /*if var_val.is_none() {
+            var_val = parent.search_up(&val);
+        }*/
+        match var_val {
+            None => &parent_block.vars.insert(name, VarVal{val_type: VarType::Generic, value: *val, values: Vec::new()}),
+            Some(val) => &parent_block.vars.insert(name, val.clone1()),
+        };
         None
     }
 
