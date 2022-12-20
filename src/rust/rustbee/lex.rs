@@ -132,6 +132,35 @@ impl Reader {
             self.pos = 0;
         }
         self.line_offset += 1;
+        // check if it can be UTF8
+        let mut byte : u32 = self.buf[self.pos] as u32;
+        if (byte & 0b1000_0000) != 0 { // UTF8
+            let mut num_byte = 
+                if (byte & 0b1111_0000) == 0b1111_0000 {
+                    byte &= 0b0000_0111; 3
+                } else if (byte & 0b1110_0000) == 0b1110_0000 {
+                    byte &= 0b0000_1111; 2
+                } else if (byte & 0b1100_0000) == 0b1100_0000 {
+                    byte &= 0b0001_1111; 1
+                } else {0};
+
+            let mut c32 : u32 = byte;
+            while num_byte > 0 {
+                self.pos += 1;
+                if self.pos >= self.end {
+                    self.end = self.reader.read(&mut self.buf).unwrap();
+                    if self.end == 0 {
+                        return None;
+                    }
+                    self.pos = 0;
+                }
+                //println!("b-{:x}", c32);
+                c32 =  (c32 << 6) | ((self.buf[self.pos] as u32) & 0b0011_1111);
+                num_byte -= 1;
+            }
+            //println!("{:x}", c32);
+            return Some(std::char::from_u32(c32).unwrap_or(std::char::REPLACEMENT_CHARACTER))
+        }
         Some(char::from(self.buf[self.pos]))
     }
 }
