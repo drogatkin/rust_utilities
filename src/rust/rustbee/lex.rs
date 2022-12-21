@@ -95,6 +95,10 @@ enum HdrState {
     InPath,
     InWork,
     InNameBlank,
+    InNameQt,
+    InPathQt,
+    InWorkQt,
+    InQtEsc
 }
  
 #[derive(Debug)]
@@ -182,8 +186,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
     let mut buf_fill: usize = 0;
     let mut last_nb = 0;
     let mut c1 = reader.next();
-    //let mut state = LexState::Begin; //*state1;
-    //let mut state = state1;
+
     while let Some(c) = c1 {
         match c {
             '"' => {
@@ -213,11 +216,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     LexState::StartParam => {
                         state = LexState::InQtParam;
                     },
-                    LexState::Comment => {
+                    LexState::Comment | LexState::BlankOrEnd => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
                 
             },
@@ -722,11 +725,14 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         blank_cnt += 1;
                     },
                    // HdrState::WorkDiv | HdrState::PathDiv => {},
-                    HdrState::InWork | HdrState::InPath => {
+                    HdrState::InWork | HdrState::InPath | HdrState::InNameQt 
+                    | HdrState::InPathQt | HdrState::InWorkQt => {
+                       // blank_cnt += 1;
                         buf[pos] = c;
                         pos += 1;
                     },
-                   // _ => todo!("state: {:?}", state)
+                    
+                    _ => todo!("state: {:?}", state)
                 }
 
             },
@@ -762,17 +768,40 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                 }
 
             },
+            '"' => {
+                match state {
+                    HdrState::NameStart => {
+                        state = HdrState::InNameQt;
+                    },
+                    HdrState::InNameQt => {
+                        state = HdrState::InName;
+                    },
+                    HdrState::WorkDiv => {
+                        state = HdrState::InWorkQt;
+                    },
+                    HdrState::InWorkQt => {
+                        state = HdrState::InWork;
+                    }
+                    HdrState::PathDiv => {
+                        state = HdrState::InPathQt;
+                    },
+                    HdrState::InPathQt => {
+                        state = HdrState::InPath;
+                    }
+                    _ => todo!("header state: {:?}", state)
+                }
+            },
             _ => {
                 match state {
-                    HdrState::InType => {
+                    HdrState::WorkDiv => {
+                        state = HdrState::InWork;
                         buf[pos] = c;
                         pos += 1;
                     },
-                    HdrState::WorkDiv => {
-                        state = HdrState::InWork;
-                    },
                     HdrState::PathDiv => {
                         state = HdrState::InPath;
+                        buf[pos] = c;
+                        pos += 1;
                     },
                     HdrState::NameStart | HdrState::InName => {
                         state = HdrState::InName;
@@ -789,11 +818,12 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         buf[pos] = c;
                         pos += 1;
                     },
-                    HdrState::InWork | HdrState::InPath => {
+                    HdrState::InWork | HdrState::InPath | HdrState::InNameQt | HdrState::InType 
+                    | HdrState::InPathQt | HdrState::InWorkQt => {
                         buf[pos] = c;
                         pos += 1;
                     },
-                    //_ => todo!("state: {:?}", state)
+                    _ => todo!("state: {:?}", state)
                 }
             }
         }
@@ -1078,7 +1108,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 // parse header and push in block stack
                // let mut test_block = GenBlock::new(BlockType::Target);
                 let (type_hdr,name,work,path) = *process_lex_header(&log, &value, &scoped_block.0.as_ref().borrow_mut().vars) ;
-                log.debug(&format!("Type: {}, name: {}, work dir: {}, path; {}", type_hdr,name,work,path));
+                log.debug(&format!("Type: {}, name: {}, work dir: '{}', path; '{}'", type_hdr,name,work,path));
                 match type_hdr.as_str() {
                     "target" => {
                         let mut inner_block = GenBlock::new(BlockType::Target);
@@ -1125,6 +1155,13 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     "not" => {
                         let inner_block = GenBlock::new(BlockType::Not);
         
+                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                    },
+                    "for" => {
+                        let mut inner_block = GenBlock::new(BlockType::For);
+                        inner_block.name = Some(name);
+                        inner_block.dir = Some(work);
+                        inner_block.flex = Some(path);
                         scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
                     "" => {

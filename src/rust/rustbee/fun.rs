@@ -29,6 +29,7 @@ pub enum BlockType {
     Or,
     And,
     Not,
+    For,
 }
 
 #[derive(Debug)]
@@ -274,6 +275,79 @@ impl GenBlockTup {
                 
                      
             },
+            BlockType::For => {
+                let mut res = prev_res.clone();
+                let mut range = Vec::new();
+                //range.push("test".to_string());
+                let name_as_opt = &self.0.borrow().name.clone();
+                if name_as_opt.is_none() {
+                    log.error(&format!("For variable isn't specified"));
+                    return None;
+                }
+                let name = name_as_opt.as_ref().unwrap();
+                // dir as range
+                let range_as_opt = &self.0.borrow().dir.clone();
+                if range_as_opt.is_none() {
+                    log.error(&format!("For range isn't specified"));
+                    return None;
+                }
+                let range_as_var = self.search_up(&range_as_opt.as_ref().unwrap());
+                
+                if range_as_var.is_some() {
+                    let range_as_val = range_as_var.unwrap();
+                    if range_as_val.val_type == VarType::Array {
+                        for var_el in range_as_val.values {
+                            range.push(var_el.clone());
+                        }
+                    } else {
+                        let sep_can = &self.0.borrow().flex.clone();
+                        if sep_can.is_none() {
+                            log.error(&format!("For values separator isn't specified"));
+                            return None;
+                        }
+                        let sep_var = self.search_up(&sep_can.as_ref().unwrap());
+                        let sep_val = match sep_var {
+                            None => sep_can.as_ref().unwrap().clone(),
+                            Some(val) => val.value.clone(),
+                        };
+                        let values = range_as_val.value.split(&sep_val);
+                        for var_el in values {
+                            range.push(var_el.to_string());
+                        }
+                    }
+                } else {
+                    let sep_can = &self.0.borrow().flex.clone();
+                        if sep_can.is_none() {
+                            log.error(&format!("For values separator isn't specified"));
+                            return None;
+                        }
+                        let sep_var = self.search_up(&sep_can.as_ref().unwrap());
+                        let sep_val = match sep_var {
+                            None => sep_can.as_ref().unwrap().clone(),
+                            Some(val) => val.value.clone(),
+                        };
+                    let values = range_as_opt.as_ref().unwrap().split(&sep_val);
+                    for var_el in values {
+                        range.push(var_el.to_string());
+                    }
+                }
+                let children = &self.0.borrow().children.clone();
+                for element in range {
+                    let var_element = VarVal{val_type: VarType::Generic, value: element.clone(), values: Vec::new()};
+                    //self.add_var(name.to_string(), var_element); element.clone()
+                    self.0.borrow_mut().vars.insert(name.to_string(), var_element);
+                    for child in children {
+                        if child.is_assign() {
+                            let child_block = child.0.borrow();
+                            let mut naked_block = self.0.borrow_mut();
+                            child.exec_assign(&log, &child_block, &mut naked_block, &res);
+                        } else {
+                            res = child.exec(&log, &res);
+                        }
+                        
+                    } 
+                }         
+            },
             BlockType::Or => {
                 let naked_block = self.0.borrow();
                 let children = &naked_block.children;
@@ -487,9 +561,9 @@ impl GenBlockTup {
 
     pub fn exec_assign(&self, log: &Log, fun_block: &GenBlock, parent_block: &mut GenBlock, res_prev: &Option<String>) -> Option<String> {
         let name = *self.parameter(&log, 0, fun_block, res_prev);
-        let mut val = self.parameter(&log, 1, fun_block, res_prev);
+        let val = self.parameter(&log, 1, fun_block, res_prev);
         let parent = parent_block.parent.as_ref().unwrap();
-        let  mut var_val = parent_block.vars.get(&name);
+        let  var_val = parent_block.vars.get(&name);
         let mut var_val2 : Option<VarVal> = None;
         if var_val.is_some() {
             var_val2 = Some(var_val.unwrap().clone1());
