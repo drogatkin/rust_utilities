@@ -95,6 +95,8 @@ enum HdrState {
     InPath,
     InWork,
     InNameBlank,
+    InWorkBlank,
+    InPathBlank,
     InNameQt,
     InPathQt,
     InWorkQt,
@@ -721,13 +723,20 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         state = HdrState::InNameBlank;
                         blank_cnt = 1;
                     },
-                    HdrState::InNameBlank => {
+                    HdrState::InNameBlank | HdrState::InWorkBlank | HdrState::InPathBlank => {
                         blank_cnt += 1;
                     },
                    // HdrState::WorkDiv | HdrState::PathDiv => {},
-                    HdrState::InWork | HdrState::InPath | HdrState::InNameQt 
+                    HdrState::InWork => {
+                        state = HdrState::InWorkBlank;
+                        blank_cnt = 1;
+                    },
+                    HdrState::InPath => {
+                        state = HdrState::InPathBlank;
+                        blank_cnt = 1;
+                    },
+                     HdrState::InNameQt 
                     | HdrState::InPathQt | HdrState::InWorkQt => {
-                       // blank_cnt += 1;
                         buf[pos] = c;
                         pos += 1;
                     },
@@ -818,6 +827,24 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         buf[pos] = c;
                         pos += 1;
                     },
+                    HdrState::InWorkBlank => {
+                        state = HdrState::InWork;
+                        for _ in 0..blank_cnt {
+                            buf[pos] = ' ';
+                            pos += 1;
+                        }
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    HdrState::InPathBlank => {
+                        state = HdrState::InPath;
+                        for _ in 0..blank_cnt {
+                            buf[pos] = ' ';
+                            pos += 1;
+                        }
+                        buf[pos] = c;
+                        pos += 1;
+                    },
                     HdrState::InWork | HdrState::InPath | HdrState::InNameQt | HdrState::InType 
                     | HdrState::InPathQt | HdrState::InWorkQt => {
                         buf[pos] = c;
@@ -835,10 +862,10 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
         HdrState::InName | HdrState::InNameBlank => {
             name = buf[0..pos].iter().collect();
         },
-        HdrState::InWork |  HdrState::PathDiv => {
+        HdrState::InWork |  HdrState::PathDiv | HdrState::InWorkBlank => {
             work_dir = buf[0..pos].iter().collect();
         },
-        HdrState::InPath => {
+        HdrState::InPath | HdrState::InPathBlank=> {
             path = buf[0..pos].iter().collect();
         },
         HdrState::NameStart => (),
