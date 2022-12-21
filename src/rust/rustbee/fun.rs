@@ -708,8 +708,11 @@ pub fn newest(mask : &str) -> Option<SystemTime> {
 }
 
 pub fn last_modified(file: &str) -> Option<SystemTime> {
-    let metadata = fs::metadata(file).expect("metadata call failed");
-
+    let result = fs::metadata(file);
+    if result.is_err() {
+        return None
+    }
+    let metadata = result.unwrap();
     if let Ok(time) = metadata.modified() {
         Some(time)
     } else {
