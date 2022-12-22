@@ -874,7 +874,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
 }
 
-pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup, res_prev: &Option<String>) -> Box<String> {
+pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev: &Option<String>) -> Box<String> {
     let mut buf = [' ';4096* 1];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
@@ -936,7 +936,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlockTup, res_p
                                 None => None,
                                 Some(val) => Some(VarVal{val_type: VarType::Generic, value: val.to_string(), values: Vec::new()})
                             } 
-                        } else {vars.search_up(&var)};
+                        } else {vars.search_up( &var)};
                         match res {
                             Some(var) => {
                                // println!("found {:?}", var);
@@ -1096,7 +1096,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                             "display" => {
                                 let parent_scoped_block = scoped_block.parent().unwrap();
                                 if parent_scoped_block.0.borrow().block_type == BlockType::Main {
-                                    println!("{}", *process_template_value(&log, &value, &scoped_block, &None));
+                                    println!("{}", *process_template_value(&log, &value, &scoped_block.0.as_ref().borrow_mut(), &None));
                                 }
                             },
                             "include" => {

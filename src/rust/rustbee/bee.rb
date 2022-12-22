@@ -91,9 +91,13 @@ target run :.: {
     }
     dependency {true}
     {
-        for word:a brown lazy fox runs over:" "{
-            display(${word} cu-cu)
+        assign(new_str,)
+        for word:a brown lazy fox runs over:" "  {
+            display(${word} at ${~index~})
+            assign(new_str,${word}_${new_str})
+            display(${new_str})
         }
+        display(${~~})
         ask(Would you like to run ${project} 好的 ❤? [Y|n] , Y)
         assign(answer, ${~~})
         if {
