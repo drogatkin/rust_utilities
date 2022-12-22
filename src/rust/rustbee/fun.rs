@@ -587,7 +587,7 @@ impl GenBlockTup {
         let val = self.parameter2(&log, &fun_block.params[1], parent_block, res_prev);
         log.debug(&format!("arguments resolved as {} {}", name, val));
         let parent = parent_block.parent.as_ref().unwrap();
-        let  var_val = parent_block.vars.get(&name);
+        let  var_val: Option<VarVal> = None; //parent_block.vars.get(&name);
         let mut var_val2 : Option<VarVal> = None;
         if var_val.is_some() {
             var_val2 = Some(var_val.unwrap().clone1());
