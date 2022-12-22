@@ -5,7 +5,8 @@
 Learning a new language is always challenging. A good practice is a very important for an effective learning.
 Some abstract exercises can be good for a beginning. But developing a small helpful program is even better.
 It is hard to come to an idea of a unique application, especially if it should be not very complex. So I came to
-the idea to develop already existing small utility, but with a particular specific for my needs.
+the idea to develop already existing small utility, but with a particular specific for my needs. About my take
+of modern programming languages you can read in [the blog](https://www.linkedin.com/pulse/rust-vs-kotlin-swift-c-dmitriy-rogatkin/).
 
 ## HV
 
