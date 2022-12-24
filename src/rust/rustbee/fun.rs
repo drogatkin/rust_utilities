@@ -557,6 +557,29 @@ impl GenBlockTup {
                 return fs::read_to_string(*fname)
                 .ok();
             },
+            "newerthan" => {
+                // compare modification date of files specified by 1st parameter
+                // in a form path/.ext1 with files specified by second parameter in
+                // the same form and return an array of files from first parameters with 
+                // newer modification time. File names are prependent with directory names 
+                // relative to the parameter path
+                // check if 1 or 2 parameters only
+                let len = fun_block.params.len();
+                let result : Vec<String>= Vec::new();
+                let (dir1, ext1) = dir_ext_param(&self.parameter(&log, 0, fun_block, res_prev));
+                if dir1.is_none() || ext1.is_none() {
+                    log.error(&format!("Parameter {} doesn't have path/ext pattern", &self.parameter(&log, 0, fun_block, res_prev)));
+                    return None
+                }
+                let (dir2, ext2) =
+                    if len > 1 {
+                        dir_ext_param(&self.parameter(&log, 1, fun_block, res_prev))
+                    } else {
+                        (None,None)
+                    };
+                return Some(vec_to_str(find_newer(&dir1.unwrap(), &ext1.unwrap(), &dir2, &ext2)));
+
+            },
             "as_url" => {
                let param = self.search_up(&fun_block.params[0]);
                log.debug(&format!{"param: {:?}", param});
@@ -686,6 +709,15 @@ fn val_to_string(val: Option<VarVal>) -> Option<String> {
     }
 }
 
+fn vec_to_str(arr: Vec<String>) -> String {
+    let mut res = String::new();
+    for el in arr {
+        res.push_str(&el);
+        res.push('\t');
+    }
+    res.to_string()
+}
+
 pub fn timestamp(p: &str) -> Option<String> {
     let metadata  = fs::metadata(p);
     if let Ok(metadata) = metadata {
@@ -710,6 +742,60 @@ pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {
     let t1 = newest(p1);
     let t2 = newest(p2);
     t1 > t2
+}
+
+fn dir_ext_param(parameter: &String) -> (Option<String>,Option<String>) {
+    let path_end = parameter.rfind('/');
+    if path_end.is_none() {
+        return (None,None)
+    }
+    let pos = path_end.unwrap();
+    let path = &parameter[0..pos];
+    if pos == parameter.len(){
+        return (Some(path.to_string()),None)
+    }   
+    let ext = &parameter[pos..];
+    (Some(path.to_string()),Some(ext.to_string()))
+}
+
+// TODO implement as pushing in passing through vector
+fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<String>) -> Vec<String> {
+    let mut result = Vec::new();
+    let paths = fs::read_dir(&dir1);
+    if paths.is_err() {
+        return result
+    }
+    let dir = paths.unwrap();
+    for file1 in dir {
+        let file1_path = &file1.as_ref().unwrap().path().into_os_string().into_string().unwrap();
+        let file1_name = &file1.as_ref().unwrap().file_name().into_string().unwrap();
+        if file1.unwrap().file_type().unwrap().is_dir() {
+            let file2_str = match dir2 {
+                Some(file2) => {
+                    Some(format!{"{}/{}", file2, file1_name})
+                },
+                None => None
+            };
+            result = [result, find_newer(&file1_path, &ext1, &file2_str, &ext2)].concat();
+        } else {
+            
+            if file1_name.ends_with(ext1) {
+                
+                match dir2 {
+                    Some(dir2) => {
+                        let file2 = format!{"{}/{}{}", &dir1, &file1_name[0..file1_name.len()-ext1.len()], &ext2.as_ref().unwrap()};
+                        let t1 = last_modified(&file1_path);
+                        let t2 = last_modified(&file2);
+                        if t1 > t2 {
+                            result.push(file1_path.to_string());
+                        }
+                    },
+                    None => result.push(file1_path.to_string())
+                }
+            }
+        }
+    }
+    result
 }
 
 pub fn newest(mask : &str) -> Option<SystemTime> {

@@ -57,7 +57,7 @@ target version update : . {
        
        write(ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.01-preview\", 3, & \"",${~~},"\")
+      (&\"1.00.01-preview\", 4, & \"",${~~},"\")
 }")  # or !now() inline
    }
 }
@@ -95,7 +95,7 @@ target run :.: {
         for word:a brown lazy fox runs over:" "  {
             display(${word} at ${~index~})
             assign(new_str,${word}_${new_str})
-            display(${new_str})
+            #display(${new_str})
         }
         display(${~~})
         ask(Would you like to run ${project} 好的 ❤? [Y|n] , Y)

@@ -124,7 +124,7 @@ fn find_script(dir: &Path) -> Option<String> {
 }
 
 fn main() -> io::Result<()> {
-     println!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2022);
+     println!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2023);
      let mut log = Log {debug : false, verbose : false};
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
