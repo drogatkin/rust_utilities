@@ -572,11 +572,12 @@ impl GenBlockTup {
                     return None
                 }
                 let (dir2, ext2) =
-                    if len > 1 {
+                    if len > 1 { 
                         dir_ext_param(&self.parameter(&log, 1, fun_block, res_prev))
                     } else {
                         (None,None)
                     };
+                log.debug(&format!{"newerthen: {:?}/{:?} then {:?}/{:?}", &dir1, &ext1, &dir2, &ext2});
                 return Some(vec_to_str(find_newer(&dir1.unwrap(), &ext1.unwrap(), &dir2, &ext2)));
 
             },
@@ -754,7 +755,7 @@ fn dir_ext_param(parameter: &String) -> (Option<String>,Option<String>) {
     if pos == parameter.len(){
         return (Some(path.to_string()),None)
     }   
-    let ext = &parameter[pos..];
+    let ext = &parameter[pos+1..];
     (Some(path.to_string()),Some(ext.to_string()))
 }
 
@@ -782,7 +783,7 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
             if file1_name.ends_with(ext1) {
                 
                 match dir2 {
-                    Some(dir2) => {
+                    Some(_dir2) => {
                         let file2 = format!{"{}/{}{}", &dir1, &file1_name[0..file1_name.len()-ext1.len()], &ext2.as_ref().unwrap()};
                         let t1 = last_modified(&file1_path);
                         let t2 = last_modified(&file2);
