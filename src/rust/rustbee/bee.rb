@@ -11,7 +11,8 @@ fake rb=${project}-1
 target clean {
     dependency {true}
     exec rm  (
-        project
+        project,
+        ver.rs
     )
 }
 

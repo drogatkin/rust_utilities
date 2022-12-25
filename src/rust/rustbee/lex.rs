@@ -102,7 +102,6 @@ enum HdrState {
     InNameQt,
     InPathQt,
     InWorkQt,
-    InQtEsc
 }
  
 #[derive(Debug)]
@@ -486,7 +485,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         return (Lexem::BlockEnd, state);
                     },
                     LexState::InParam | LexState::InValue | LexState::InQtParam | LexState::Comment |
-                    LexState::InQtValue | LexState::InQtParam => {
+                    LexState::InQtValue => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -499,9 +498,6 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::BlockEnd;
                     // decide what to do with lex value ????
                         return (Lexem::BlockEnd, state);
-                    },
-                    LexState::Begin => {
-
                     },
                     _ => todo!("state: {:?}", state)
                 }
@@ -605,7 +601,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::EndFunction; 
                         return (Lexem::Parameter(buffer[0..buf_fill].iter().collect()), state);
                     },
-                    LexState::InValue | LexState::InQtParam | LexState::Comment | LexState::InQtParam |
+                    LexState::InValue | LexState::InQtParam | LexState::Comment |
                     LexState::InQtValue | LexState::InQtLex => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
@@ -824,8 +820,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         buf[pos] = c;
                         pos += 1;
                     },
-                    
-                    _ => todo!("state: {:?}", state)
+                   // _ => todo!("state: {:?}", state)
                 }
 
             },
@@ -934,7 +929,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
                         buf[pos] = c;
                         pos += 1;
                     },
-                    _ => todo!("state: {:?}", state)
+                    //_ => todo!("state: {:?}", state)
                 }
             }
         }
@@ -1026,7 +1021,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                                match var.val_type {
                                     VarType::Environment => {
                                       //  println!("looking for {} in env", var.value);
-                                        let env = match env::var(var.value.to_string()) {
+                                        let _env = match env::var(var.value.to_string()) {
                                             Ok(val) => {
                                                 for vc in val.chars() {
                                                     buf[pos] = vc;
@@ -1095,9 +1090,13 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                 }
             }
         }
-        
     }
-    Box::new(buf[0..pos].iter().collect())
+    // temporay hack (no loop detection )
+    let expanded_val:String = buf[0..pos].iter().collect();
+    if expanded_val.find("${").is_some() {
+        return process_template_value(&log, &expanded_val, &vars, &res_prev)
+    }
+    Box::new(expanded_val)
 }
 
 pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {

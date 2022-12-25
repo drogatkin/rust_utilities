@@ -224,7 +224,17 @@ impl GenBlockTup {
                         return false
                     };
                 },
-                _ => todo!()
+                BlockType::Or => {
+                    //let len = dep_block.children.len();
+                    for child in &dep_block.children {
+                        let res = child.exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                        if res {
+                            return true;
+                       }
+                    }
+                    return false;
+                },
+                _ => todo!("the operation {:?} isn't supported yet", dep_block.block_type)
             }
         }
         false
@@ -479,7 +489,7 @@ impl GenBlockTup {
                     let param = &fun_block.params[i];
                     let val = self.search_up(&param);
                     // TODO add resolving using last result ~~
-                    log.debug(&format!("search: {:?} {:?}", fun_block.params, val));
+                    log.debug(&format!("exec params: {:?} for {:?}", fun_block.params, val));
                     if let Some(param) = val {
                         if param.values.len() > 0 {
                             for param in param.values {
@@ -632,13 +642,20 @@ impl GenBlockTup {
 
     pub fn exec_assign(&self, log: &Log, fun_block: &GenBlock, parent_block: &mut GenBlock, res_prev: &Option<VarVal>) -> Option<VarVal> {
         let name = *self.parameter(&log, 0, fun_block, res_prev); 
+
         let val = self.parameter2(&log, &fun_block.params[1], parent_block, res_prev);
         log.debug(&format!("arguments resolved as {} {}", name, val));
         let parent = parent_block.parent.as_ref().unwrap();
-        let  var_val: Option<VarVal> = None; //parent_block.vars.get(&name);
+        let  var_val: &Option<VarVal> = if *val == "~~" {
+            res_prev
+        } else {
+            &None
+        };
+        
+        //parent_block.vars.get(&name);
         let mut var_val2 : Option<VarVal> = None;
         if var_val.is_some() {
-            var_val2 = Some(var_val.unwrap().clone1());
+            var_val2 = Some(var_val.as_ref().unwrap().clone1());
         } else {
             let var_val3 = parent.search_up(&val);
             if var_val3.is_some() {
