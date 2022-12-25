@@ -766,6 +766,7 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
     if paths.is_err() {
         return result
     }
+    //println!{"newerthen: {:?}/{:?} then {:?}/{:?}", &dir1, &ext1, &dir2, &ext2};
     let dir = paths.unwrap();
     for file1 in dir {
         let file1_path = &file1.as_ref().unwrap().path().into_os_string().into_string().unwrap();
@@ -783,11 +784,13 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
             if file1_name.ends_with(ext1) {
                 
                 match dir2 {
-                    Some(_dir2) => {
-                        let file2 = format!{"{}/{}{}", &dir1, &file1_name[0..file1_name.len()-ext1.len()], &ext2.as_ref().unwrap()};
+                    Some(dir2) => {
+                        let file2 = format!{"{}/{}{}", &dir2, &file1_name[0..file1_name.len()-ext1.len()], &ext2.as_ref().unwrap()};
+                        
                         let t1 = last_modified(&file1_path);
                         let t2 = last_modified(&file2);
-                        if t1 > t2 {
+                        //println!{"comparing: {:?}:{:?}<>{:?}:{:?}", &file1_path, &t1, &file2, &t2};
+                        if t2.is_none() || t1.unwrap() > t2.unwrap() {
                             result.push(file1_path.to_string());
                         }
                     },
