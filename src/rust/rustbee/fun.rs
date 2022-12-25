@@ -716,7 +716,7 @@ pub fn exec_target(log: &Log, target: &GenBlock /*, res_prev: &Option<String>*/)
     need_exec
 } 
 
-fn val_to_string(val: Option<VarVal>) -> Option<String> {
+ fn val_to_string(val: Option<VarVal>) -> Option<String> {
     if val.is_none() {
         return None
     }
@@ -734,7 +734,7 @@ fn val_to_string(val: Option<VarVal>) -> Option<String> {
     }
 }
 
-fn vec_to_str(arr: Vec<String>) -> String {
+pub fn vec_to_str(arr: &Vec<String>) -> String {
     let mut res = String::new();
     for el in arr {
         res.push_str(&el);
@@ -790,7 +790,7 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
     if paths.is_err() {
         return result
     }
-    //println!{"newerthen: {:?}/{:?} then {:?}/{:?}", &dir1, &ext1, &dir2, &ext2};
+    //println!{"find newerthen: {:?}/{:?} then {:?}/{:?}", &dir1, &ext1, &dir2, &ext2};
     let dir = paths.unwrap();
     for file1 in dir {
         let file1_path = &file1.as_ref().unwrap().path().into_os_string().into_string().unwrap();
@@ -813,7 +813,7 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
                         
                         let t1 = last_modified(&file1_path);
                         let t2 = last_modified(&file2);
-                        //println!{"comparing: {:?}:{:?}<>{:?}:{:?}", &file1_path, &t1, &file2, &t2};
+                       // println!{"comparing: {:?}:{:?}<>{:?}:{:?}", &file1_path, &t1, &file2, &t2};
                         if t2.is_none() || t1.unwrap() > t2.unwrap() {
                             result.push(file1_path.to_string());
                         }

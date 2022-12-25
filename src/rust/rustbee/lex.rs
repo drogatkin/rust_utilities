@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 use log::Log;
 use std::env;
-use fun::{GenBlock, BlockType, GenBlockTup};
+use fun::{GenBlock, BlockType, GenBlockTup, vec_to_str};
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 
@@ -1040,6 +1040,13 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                                                 } 
                                             },
                                         };
+                                    },
+                                    VarType::Array => {
+                                        let chars = vec_to_str(&var.values);
+                                        for vc in chars.chars() {
+                                            buf[pos] = vc;
+                                            pos += 1;
+                                        }
                                     },
                                     _ => {
                                         for vc in var.value.chars() {
