@@ -122,8 +122,29 @@ pub struct Reader {
 }
 
 impl VarVal {
+    pub fn from_string(str: &str) -> VarVal {
+        VarVal{val_type: VarType::Generic, value: str.to_string(), values: Vec::new()}  
+    }
+
+    pub fn from_bool(boole: bool) -> VarVal {
+        VarVal{val_type: VarType::Bool, value: if boole {"true".to_string()} else {"false".to_string()}, values: Vec::new()}  
+    }
+
+    pub fn from_i32(number: i32) -> VarVal {
+        VarVal{val_type: VarType::Number, value: format!{"{}", number}, values: Vec::new()}  // 
+    }
+
+    pub fn from_vec(vec: &Vec<String>) -> VarVal {
+        VarVal{val_type: VarType::Array, value: "".to_string(), values: vec.clone()}  
+    }
+
     pub fn clone1(& self) -> VarVal {
         VarVal{val_type: self.val_type.clone(), value: self.value.clone(), values: self.values.clone()}
+    }
+
+    pub fn is_true(& self) -> bool {
+        self.value == "true" || self.val_type == VarType::Array && self.values.len() > 0 
+        || self.val_type == VarType::Number && self.value.parse::<i32>().is_ok() && self.value.parse::<i32>().unwrap() != 0
     }
 }
 
@@ -937,7 +958,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
     Box::new((lex_type.to_string(), name.to_string(), work_dir.to_string(), path.to_string()))
 }
 
-pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev: &Option<String>) -> Box<String> {
+pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
     let mut buf = [' ';4096* 1];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
@@ -994,11 +1015,10 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                         //println!("looking {}", var);
                         // check name for ~~ and then use global thread local
                         let res = if var == "~~" {
-                        // println!("prev op par {:?}", res_prev);
                             match res_prev {
                                 None => None,
-                                Some(val) => Some(VarVal{val_type: VarType::Generic, value: val.to_string(), values: Vec::new()})
-                            } 
+                                Some(prev) => Some(prev.clone1())
+                            }
                         } else {vars.search_up( &var)};
                         match res {
                             Some(var) => {

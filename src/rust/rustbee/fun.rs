@@ -146,7 +146,7 @@ impl GenBlockTup {
         }
     }
 
-    pub fn eval_dep(&self, log: &Log, prev_res: &Option<String>) -> bool {
+    pub fn eval_dep(&self, log: &Log, prev_res: &Option<VarVal>) -> bool {
         let dep = self.0.borrow();
         if dep.children.len() == 0 {
             
@@ -184,7 +184,7 @@ impl GenBlockTup {
                     if len  > 0 {
                         let p1 = &dep_block.children[0];
                         let p1_block = p1.0.borrow();
-                        let r1 : Option<String> =
+                        let r1 : Option<VarVal> =
                          match p1_block.block_type {
                              BlockType::Function => {
                                 p1.exec_fun(&log, &p1_block, prev_res)
@@ -192,7 +192,7 @@ impl GenBlockTup {
                              _ => { todo!("block: {:?}", dep_block.block_type);
                             }
                         };
-                        let r2 : Option<String> =
+                        let r2 : Option<VarVal> =
                             if len == 2 {
                                   match p1_block.block_type {
                                     BlockType::Function => {
@@ -205,7 +205,21 @@ impl GenBlockTup {
                                 None
                             };
                             log.debug(&format!("comparing: {:?} and {:?}", r1, r2));
-                        return r1 == r2;
+                        match r1 {
+                            None => {
+                                match r2 {
+                                    None => return true,
+                                    _ => return false
+                                }
+                            },
+                            Some(r1) => {
+                                match r2 {
+                                    None => return false,
+                                    Some(r2) => return r1.value == r2.value
+                                }
+                            }
+                        }
+                       // return r1 == r2;
                     } else {
                         return false
                     };
@@ -251,20 +265,23 @@ impl GenBlockTup {
         naked_block.block_type == BlockType::Function && naked_block.name.is_some() && naked_block.name.as_ref().unwrap() == "assign"
     }
 
-    pub fn exec(&self, log: &Log, prev_res: &Option<String>) -> Option<String> {
+    pub fn exec(&self, log: &Log, prev_res: &Option<VarVal>) -> Option<VarVal> {
         //let naked_block = self.0.borrow();
         //log.debug(&format!("exec {:?} name: {:?} prev: {:?}", naked_block.block_type, naked_block.name, prev_res));
         let block_type = self.0.borrow().block_type.clone();
         log.debug(&format!("processing block {:?}", block_type));
         match  block_type {
             BlockType::Scope | BlockType::Then | BlockType::Else => {
-                let mut res = prev_res.clone();
+                let mut res = match prev_res {
+                    None => None,
+                    Some(var) => Some(var.clone1())
+                };
                 let children = &self.0.borrow().children.clone();
                 for child in children {
                     if child.is_assign() {
                         let child_block = child.0.borrow();
                         let mut naked_block = self.0.borrow_mut();
-                        res = val_to_string(child.exec_assign(&log, &child_block, &mut naked_block, &res));
+                        res = child.exec_assign(&log, &child_block, &mut naked_block, &res);
                     } else {
                         res = child.exec(&log, &res);
                     }
@@ -276,7 +293,7 @@ impl GenBlockTup {
                 let children = &naked_block.children;
                 let mut res = children[0].exec(&log, prev_res);
                 log.debug(&format!("neq {:?}", res));
-                if res.as_ref().unwrap_or(&"false".to_string()) == "true" {
+                if res.as_ref().unwrap_or(&VarVal::from_bool(false)).is_true() {
                     res = children[1].exec(&log, prev_res);
                 } else if children.len() == 3 {
                     res = children[2].exec(&log, prev_res);
@@ -295,7 +312,10 @@ impl GenBlockTup {
                 return res;
             },
             BlockType::For => {
-                let mut res = prev_res.clone();
+                let mut res = match prev_res {
+                    None => None,
+                    Some(var) => Some(var.clone1())
+                };
                 let mut range = Vec::new();
                 //range.push("test".to_string());
                 let name_as_opt = &self.0.borrow().name.clone();
@@ -363,7 +383,7 @@ impl GenBlockTup {
                         if child.is_assign() {
                             let child_block = child.0.borrow();
                             let mut naked_block = self.0.borrow_mut();
-                            res = val_to_string(child.exec_assign(&log, &child_block, &mut naked_block, &res));
+                            res = child.exec_assign(&log, &child_block, &mut naked_block, &res);
                         } else {
                             res = child.exec(&log, &res);
                         } 
@@ -375,23 +395,23 @@ impl GenBlockTup {
                 let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 for child in children {
-                    let res = child.exec(&log, prev_res).unwrap_or("false".to_string());
-                    if res == "true" {
-                        return Some("true".to_string());
+                    let res = child.exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                    if res {
+                        return Some(VarVal::from_bool(res));
                    }
                 }
-                return Some("false".to_string());
+                return Some(VarVal::from_bool(false));
             },
             BlockType::And => {
                 let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 for child in children {
-                    let res = child.exec(&log, prev_res).unwrap_or("false".to_string());
-                    if res == "false" {
-                        return Some("false".to_string());
+                    let res = child.exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                    if !res {
+                        return Some(VarVal::from_bool(false));
                    }
                 }
-                return Some("true".to_string());
+                return Some(VarVal::from_bool(true));
             },
             BlockType::Not => {
                 let naked_block = self.0.borrow();
@@ -399,25 +419,24 @@ impl GenBlockTup {
                 if children.len() > 1 {
                     log.error(&format!("unexpected block(s) {}", children.len()));
                 }
-                let res = children[0].exec(&log, prev_res).unwrap_or("false".to_string());
-                if res == "false" {
-                    return Some("true".to_string());
+                let res = children[0].exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                if !res {
+                    return Some(VarVal::from_bool(true));
                }
-               return Some("false".to_string());
+               return Some(VarVal::from_bool(false));
             },
             _ => todo!("block: {:?}, {:?}", self.0.borrow().block_type, self.0.borrow().name)
         }
       //  None
     }
 
-    pub fn exec_fun(&self, log: &Log, fun_block: & GenBlock, res_prev: &Option<String>) -> Option<String> {
+    pub fn exec_fun(&self, log: &Log, fun_block: & GenBlock, res_prev: &Option<VarVal>) -> Option<VarVal> {
         match fun_block.name.as_ref().unwrap().as_str() {
             "display" => {
                 println!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
             "now" => {
-              
-              return Some(format_system_time(SystemTime::now()));
+              return Some(VarVal::from_string(&format_system_time(SystemTime::now())));
             },
             "write" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
@@ -433,9 +452,9 @@ impl GenBlockTup {
                 log.debug(&format!("comparing {:?} and {:?}", self.parameter(&log, 0, fun_block, res_prev), self.parameter(&log, 1, fun_block, res_prev)));
 
                 return if self.parameter(&log, 0, fun_block, res_prev) == self.parameter(&log, 1, fun_block, res_prev) {
-                    Some("false".to_string())
+                    Some(VarVal::from_bool(false))
                 } else {
-                    Some("true".to_string())
+                    Some(VarVal::from_bool(true))
                 };
             },
             "eq" => {
@@ -443,9 +462,9 @@ impl GenBlockTup {
                 log.debug(&format!("comparing {:?} and {:?}", self.parameter(&log, 0, fun_block, res_prev), self.parameter(&log, 1, fun_block, res_prev)));
 
                 return if self.parameter(&log, 0, fun_block, res_prev) == self.parameter(&log, 1, fun_block, res_prev) {
-                    Some("true".to_string())
+                    Some(VarVal::from_bool(true))
                 } else {
-                    Some("false".to_string())
+                    Some(VarVal::from_bool(false))
                 };
             },
             "exec" => {
@@ -476,14 +495,14 @@ impl GenBlockTup {
                 let dry_run = self.search_up(&"~dry-run~".to_string());
                 if let Some(dry_run) = dry_run {
                    log.log(&format!("command: {:?} {:?}", exec, params));
-                   return Some("0".to_string());
+                   return Some(VarVal::from_i32(0));
                 } else {
                     let status = Command::new(&exec)
                     .args(&params)
                     .status().expect(&format!("{} command with {:?} failed to start", exec, params));
                     match status.code() {
                         Some(code) => {
-                            return Some(code.to_string());},
+                            return Some(VarVal::from_i32(code));},
                             //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
                         None       => log.error(&format!("Process terminated by signal"))
                     }
@@ -493,22 +512,23 @@ impl GenBlockTup {
                 for i in 0..fun_block.params.len() {
                     let param = *self.parameter(&log, i, fun_block, res_prev);
                     if param == "true" {
-                        return Some("true".to_string());
+                        return Some(VarVal::from_bool(true));
                     }
                 }
-                return Some("false".to_string());
+                return Some(VarVal::from_bool(false));
             },
             "and" => {
                 for i in 0..fun_block.params.len() {
                     let param = *self.parameter(&log, i, fun_block, res_prev);
                     if param == "false" {
-                        return Some("false".to_string());
+                        return Some(VarVal::from_bool(false));
                     }
                 }
-                return Some("true".to_string());
+                return Some(VarVal::from_bool(true));
             },
             "cropname" => {
                 let param = *self.parameter(&log, 0, fun_block, res_prev); 
+                //return Some(VarVal::from_string())
             },
             "filename" => {
                 let param = *self.parameter(&log, 0, fun_block, res_prev);
@@ -518,17 +538,17 @@ impl GenBlockTup {
                     None => {
                         match dot_pos {
                             Some(dot_pos) => {
-                                return Some(param[0..dot_pos].to_string());
+                                return Some(VarVal::from_string(&param[0..dot_pos]));
                             },
-                            None => return Some(param),
+                            None => return Some(VarVal::from_string(&param)),
                         }
                     },
                     Some(slash_pos) => {
                         match dot_pos {
                             Some(dot_pos) => {
-                                return Some(param[slash_pos..dot_pos].to_string());
+                                return Some(VarVal::from_string(&param[slash_pos..dot_pos]));
                             },
-                            None => return Some(param[slash_pos..].to_string())
+                            None => return Some(VarVal::from_string(&param[slash_pos..]))
                         }
                     }
                 }
@@ -547,15 +567,19 @@ impl GenBlockTup {
                     user_input = *self.parameter(&log, 1, fun_block, res_prev);
                 }
                 println!("");
-                return Some(user_input);
+                return Some(VarVal::from_string(&user_input));
             },
             "timestamp" => {
-                return timestamp(&self.parameter(&log, 0, fun_block, res_prev));
+                let ts = timestamp(&self.parameter(&log, 0, fun_block, res_prev));
+                match ts {
+                    Some(timestamp) => return Some(VarVal::from_string(&timestamp)),
+                    None => return None
+                }
             },
             "read" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
-                return fs::read_to_string(*fname)
-                .ok();
+                return Some(VarVal::from_string(&fs::read_to_string(*fname)
+                .ok().unwrap()));
             },
             "newerthan" => {
                 // compare modification date of files specified by 1st parameter
@@ -578,7 +602,7 @@ impl GenBlockTup {
                         (None,None)
                     };
                 log.debug(&format!{"newerthen: {:?}/{:?} then {:?}/{:?}", &dir1, &ext1, &dir2, &ext2});
-                return Some(vec_to_str(find_newer(&dir1.unwrap(), &ext1.unwrap(), &dir2, &ext2)));
+                return Some(VarVal::from_vec(&find_newer(&dir1.unwrap(), &ext1.unwrap(), &dir2, &ext2)));
 
             },
             "as_url" => {
@@ -588,7 +612,7 @@ impl GenBlockTup {
                    match param.val_type {
                     VarType::RepositoryRust => {
                         if let Some(pos) = param.value.find('@') {
-                            return Some(format!("https://crates.io/api/v1/crates/{}/{}/download", &param.value[0..pos], &param.value[pos+1..]));
+                            return Some(VarVal::from_string(&format!("https://crates.io/api/v1/crates/{}/{}/download", &param.value[0..pos], &param.value[pos+1..])));
                         }
                     },
                     _ => ()
@@ -606,8 +630,8 @@ impl GenBlockTup {
         None
     }
 
-    pub fn exec_assign(&self, log: &Log, fun_block: &GenBlock, parent_block: &mut GenBlock, res_prev: &Option<String>) -> Option<VarVal> {
-        let name = *self.parameter(&log, 0, fun_block, res_prev);
+    pub fn exec_assign(&self, log: &Log, fun_block: &GenBlock, parent_block: &mut GenBlock, res_prev: &Option<VarVal>) -> Option<VarVal> {
+        let name = *self.parameter(&log, 0, fun_block, res_prev); 
         let val = self.parameter2(&log, &fun_block.params[1], parent_block, res_prev);
         log.debug(&format!("arguments resolved as {} {}", name, val));
         let parent = parent_block.parent.as_ref().unwrap();
@@ -622,17 +646,17 @@ impl GenBlockTup {
             }
         }
         match var_val2 {
-            None => parent_block.vars.insert(name, VarVal{val_type: VarType::Generic, value: *val, values: Vec::new()}),
+            None => parent_block.vars.insert(name, VarVal::from_string(&val)),
             Some(val) => parent_block.vars.insert(name, val.clone1()),
         }
     }
 
-    pub fn parameter(&self, log: &Log, i: usize, fun_block: &GenBlock, res_prev: &Option<String>) -> Box<String> {
+    pub fn parameter(&self, log: &Log, i: usize, fun_block: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
         log.debug(&format!("looking for {:?} of {:?}", &fun_block.params[i], &fun_block.block_type));  
         process_template_value(&log, &fun_block.params[i], &fun_block, res_prev)
     }
 
-    pub fn parameter2(&self, log: &Log, param: &String, owner_block: &GenBlock, res_prev: &Option<String>) -> Box<String> {
+    pub fn parameter2(&self, log: &Log, param: &String, owner_block: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
         log.debug(&format!("looking(2) for {:?} of {:?}", param, &owner_block.block_type));  
         process_template_value(&log, param, &owner_block, res_prev)
     }
