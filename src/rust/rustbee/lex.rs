@@ -494,7 +494,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::InLex | LexState::BlankOrEnd => {
+                    LexState::InLex | LexState::BlankOrEnd | LexState::EndFunction => {
                         state = LexState::BlockEnd;
                     // decide what to do with lex value ????
                         return (Lexem::BlockEnd, state);
@@ -1094,6 +1094,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
     // temporay hack (no loop detection )
     let expanded_val:String = buf[0..pos].iter().collect();
     if expanded_val.find("${").is_some() {
+        log.debug(&format!{"expanding {}", expanded_val});
         return process_template_value(&log, &expanded_val, &vars, &res_prev)
     }
     Box::new(expanded_val)

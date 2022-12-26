@@ -148,10 +148,11 @@ impl GenBlockTup {
 
     pub fn eval_dep(&self, log: &Log, prev_res: &Option<VarVal>) -> bool {
         let dep = self.0.borrow();
-        if dep.children.len() == 0 {
+        let len = dep.children.len();
+        if len == 0 {
             
             return true
-        } else if dep.children.len() == 1 {
+        } else if len == 1 {
             let dep_task = &dep.children[0];
             let dep_block = dep_task.0.borrow();
             match dep_block.block_type {
@@ -169,11 +170,10 @@ impl GenBlockTup {
                             }
                         },
                         "anynewer" => {
-                            log.debug(&format!("evaluating allnewer: {}", dep_block.params.len()));
-                            let log = Log {debug : false, verbose : false};
+                            log.debug(&format!("evaluating anynewer: {}", dep_block.params.len()));
                             let p1 = process_template_value(&log, &dep_block.params[0], &dep, prev_res);
                             let p2 = process_template_value(&log, &dep_block.params[1], &dep, prev_res);
-                            log.debug(&format!("parameter: {}, {}", p1, p2));
+                            log.debug(&format!("anynewer parameters: {}, {}", p1, p2));
                             return exec_anynewer(self, &p1, &p2);
                         },
                         _ => todo!("function: {:?}", dep_block.name)
@@ -236,6 +236,8 @@ impl GenBlockTup {
                 },
                 _ => todo!("the operation {:?} isn't supported yet", dep_block.block_type)
             }
+        } else {
+            log.error(&format!("{} children not supported in a dependency", len));
         }
         false
     }
@@ -716,6 +718,7 @@ pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Resu
 pub fn exec_target(log: &Log, target: &GenBlock /*, res_prev: &Option<String>*/) -> bool {
     // dependencies
     let mut need_exec = false;
+    log.debug(&format!("processing: {} deps of {:?}", &target.deps.len(), &target.name));
     for dep in &target.deps {
         need_exec |= dep.eval_dep(&log, &None);
     }
@@ -783,6 +786,7 @@ pub fn format_system_time(time: SystemTime) -> String {
 pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {
     let t1 = newest(p1);
     let t2 = newest(p2);
+  //  println!{"modified {:?} and {:?}", t1, t2};
     t1 > t2
 }
 
@@ -820,10 +824,8 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
                 None => None
             };
             result = [result, find_newer(&file1_path, &ext1, &file2_str, &ext2)].concat();
-        } else {
-            
+        } else {  
             if file1_name.ends_with(ext1) {
-                
                 match dir2 {
                     Some(dir2) => {
                         let file2 = format!{"{}/{}{}", &dir2, &file1_name[0..file1_name.len()-ext1.len()], &ext2.as_ref().unwrap()};
@@ -852,10 +854,14 @@ pub fn newest(mask : &str) -> Option<SystemTime> {
     return
     if let Some(pos) = pos1 {
         let mut last: Option<SystemTime> = None;
-        for entry in fs::read_dir(parent1).unwrap() {
+        let dir = fs::read_dir(parent1).ok();
+        if dir.is_none() {
+            return None
+        }
+        for entry in dir.unwrap() {
             let entry = entry.unwrap();
             let path = entry.path();
-            if path.is_file() {
+            if path.is_file() { 
                   if let Some(path1) = path.file_name() {
                        if let Some(file_path) = path1.to_str() {
                           if str_name1.len() == 1 || 
@@ -876,8 +882,21 @@ pub fn newest(mask : &str) -> Option<SystemTime> {
                              }    
                        }
                   }
-             }
-        }
+             } else {
+                let dir_entry_path = entry.path().into_os_string().into_string().unwrap();
+                let last_dir = newest(&format!{"{}/*", dir_entry_path}) ;
+                match last {
+                    None => last = last_dir,
+                    Some(time) => {
+                        if let Some(time2) = last_dir {
+                            if time2 > time {
+                                last = last_dir;
+                            }
+                        }
+                    }
+                }
+            }
+        } 
         last
     } else {
         last_modified(path1.to_str().unwrap())

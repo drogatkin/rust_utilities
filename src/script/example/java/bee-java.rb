@@ -12,6 +12,15 @@ resources ="${domain}.${project}.resources"
 manifestf =""
 main_class= "${domain}.${project}.Main"
 
+target clean {
+    dependency {true}
+    exec rm  (
+        -r,
+        ${build_directory}/${domain},
+        ${build_directory}/${build_file}
+    )
+}
+
 target compile:. {
    dependency {
        or {
@@ -44,9 +53,13 @@ target compile:. {
 }
 
 target jar {
-     dependency {
-         anynewer(${build_directory}/${domain},build_file)
-     }
+      dependency {
+         anynewer(${build_directory}/${domain}/*,${build_directory}/${build_file})
+      }
+      dependency {
+          target(compile)
+      }
+     
      {    display(Jarring ${build_file} ...)
           exec jar (
             -cf,
