@@ -538,9 +538,29 @@ impl GenBlockTup {
                 }
                 return Some(VarVal::from_bool(true));
             },
-            "cropname" => {
-                let param = *self.parameter(&log, 0, fun_block, res_prev); 
-                //return Some(VarVal::from_string())
+            "scalar" => { // vector var, separator
+                let sep = if fun_block.params.len() > 1 {
+                    *self.parameter(&log, 1, fun_block, res_prev)
+                } else {" ".to_string()};
+                let vec_param = match fun_block.search_up(&fun_block.params[0]) {
+                    Some(vec_param) => { 
+                        if vec_param.val_type == VarType::Array {
+                            let mut collect_str = vec_param.values[0].to_owned();
+                            let mut next_el = 1;
+                            while next_el < vec_param.values.len() {
+                                collect_str.push_str(&vec_param.values[next_el]);
+                                collect_str.push_str(&sep);
+                                next_el += 1;
+                            }
+                            Some(VarVal::from_string(&collect_str))
+                        } else {
+                            Some(VarVal::from_string(&vec_param.value))
+                        }
+                     },
+                    None => None
+                };
+                 
+                return vec_param
             },
             "filename" => {
                 let param = *self.parameter(&log, 0, fun_block, res_prev);

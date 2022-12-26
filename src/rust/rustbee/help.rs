@@ -30,10 +30,10 @@ Options:
   -targethelp            print all target names in a build file with descriptions/comments
   -th                    ''
   --                     separator of argumets passed to a built executable 
-Examples: bee jar -d
-         rb compile -s
-         rb clean compile -r
-         rb run -- arg1
+Examples: rb jar -d
+          rb compile -s
+          rb clean compile -r
+          rb run -- arg1
 "#;
    help.to_string()
 }
