@@ -686,7 +686,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::Begin | LexState::BlockStart => {
+                    LexState::Begin | LexState::BlockStart | LexState::BlankOrEnd | LexState::BlockEnd => {
                         state = LexState::InLex;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
@@ -717,11 +717,6 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::InParam;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
-                    },
-                    LexState::BlankOrEnd => {
-                        buffer[buf_fill] = c;
-                        buf_fill += 1; 
-                        state = LexState::InLex;
                     },
                     LexState::BlankInValue => {
                         buffer[buf_fill] = c;
