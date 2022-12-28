@@ -587,10 +587,8 @@ impl GenBlockTup {
             },
             "ask" => {
                 let len = fun_block.params.len();
-                if len > 0 {
-                    print!("{} ", *self.parameter(&log, 0, fun_block, res_prev));
-                    io::stdout().flush().unwrap();
-                }
+                print!("{} ", *self.parameter(&log, 0, fun_block, res_prev));
+                io::stdout().flush().unwrap();
                 let mut user_input = String::new();
                 let stdin = io::stdin();
                 stdin.read_line(&mut user_input);
@@ -602,11 +600,15 @@ impl GenBlockTup {
                 return Some(VarVal::from_string(&user_input));
             },
             "timestamp" => {
-                let ts = timestamp(&self.parameter(&log, 0, fun_block, res_prev));
-                match ts {
-                    Some(timestamp) => return Some(VarVal::from_string(&timestamp)),
-                    None => return None
-                }
+                if no_parameters(&fun_block) {
+                    log.error(&format!{"no argument for timestamp"});
+                } else {
+                    let ts = timestamp(&self.parameter(&log, 0, fun_block, res_prev));
+                    match ts {
+                        Some(timestamp) => return Some(VarVal::from_string(&timestamp)),
+                        None => return None
+                    }
+                }   
             },
             "read" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
@@ -756,6 +758,10 @@ pub fn exec_target(log: &Log, target: &GenBlock /*, res_prev: &Option<String>*/)
     need_exec
 } 
 
+fn no_parameters(fun: &GenBlock) -> bool {
+    fun.block_type == BlockType::Function && fun.params.len() < 2 && (fun.params.len() == 0 || fun.params[0].is_empty())
+}
+
  fn val_to_string(val: Option<VarVal>) -> Option<String> {
     if val.is_none() {
         return None
@@ -798,8 +804,10 @@ pub fn timestamp(p: &str) -> Option<String> {
 
 pub fn format_system_time(time: SystemTime) -> String {
     let dur = time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-    let (y,m,d,h,min,s) = time:: get_datetime(1970, dur.as_secs());
-              
+    let (y,m,d,h,min,s,w) = time:: get_datetime(1970, dur.as_secs());
+    
+    let day_of_week = if w+4 > 6 {w-5} else {w+3};
+    println!{"week {} - {}", w, day_of_week} ;
     format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s) 
 }
 

@@ -955,6 +955,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
     let chars = value.chars();
     let mut pos = 0;
     let mut state = TemplateState::InVal;
+    let mut was_replacement = false;
     for c in chars {
         match c {
             '$' => {
@@ -1013,6 +1014,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                         match res {
                             Some(var) => {
                                // println!("found {:?}", var);
+                               // TODO avoid replacement in an infinitive loop
                                match var.val_type {
                                     VarType::Environment => {
                                       //  println!("looking for {} in env", var.value);
@@ -1045,7 +1047,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                                         }
                                     }
                                }
-                                
+                               was_replacement = true;
                             },
                             None => {
                                 buf[pos] = '$';
@@ -1088,8 +1090,8 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
     }
     // temporay hack (no loop detection )
     let expanded_val:String = buf[0..pos].iter().collect();
-    if expanded_val.find("${").is_some() {
-        log.debug(&format!{"expanding {}", expanded_val});
+    if was_replacement {
+        log.debug(&format!{"expanding {}", &expanded_val});
         return process_template_value(&log, &expanded_val, &vars, &res_prev)
     }
     Box::new(expanded_val)

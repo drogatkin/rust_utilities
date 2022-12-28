@@ -1,4 +1,5 @@
-pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32,u32) { // year, month, day, hour, minute, second
+use std::convert::TryInto;
+pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32,u32,u8) { // year, month, day, hour, minute, second, a day in a week after epoch day
     let mut mon_days = [31,
 	28,
 	31,
@@ -19,6 +20,7 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
     let hour_in_day = mins_in_day / 60;
 	let min_in_hour = mins_in_day % 60;
 	let mut curr_year = epoch_year;
+	let remaining_days_week : u8 = (days % 7).try_into().unwrap();
 	
 	if days > year_len(curr_year) {
 		loop {
@@ -42,7 +44,7 @@ pub fn get_datetime(epoch_year: u32, duration_sec: u64) -> (u32,u32,u32, u32,u32
 			current_month += 1;
 		}
 	}
-	(curr_year, current_month+1, days+1, hour_in_day, min_in_hour, sec_in_min)
+	(curr_year, current_month+1, days+1, hour_in_day, min_in_hour, sec_in_min,remaining_days_week)
 }
 
 #[inline]
