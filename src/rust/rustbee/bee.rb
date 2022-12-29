@@ -5,7 +5,7 @@ project  =rb
 RUSTC=/home/dmitriy/AndroidStudioProjects/rust/build/x86_64-unknown-linux-gnu/stage2/bin/rustc
 src=main.rs
 include(env);
-display(Shell ${Shell})
+display("Shell ${Shell}, and custom ${File}")
 fake rb=${project}-1
 
 target clean {
@@ -104,6 +104,8 @@ target run :.: {
         if {
             eq(${answer},Y)
             then {
+                now()
+                display(${~~})
                 exec fake rb (
                     ~args~
                    )

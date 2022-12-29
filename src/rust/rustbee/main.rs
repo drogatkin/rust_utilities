@@ -64,6 +64,17 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                env::set_var("RUST_BACKTRACE", "1");
           } else if arg.starts_with("-r")  {
                options.push(CmdOption::ForceRebuild);
+          } else if arg.starts_with("-D")  {
+               let prop_def = &arg[2..];
+               let eq_pos = prop_def.find('=');
+               if eq_pos.is_some() {
+                    let pos = eq_pos.unwrap();
+                    let name = &prop_def[0..pos];
+                    let val = &prop_def[pos+1..];
+                    env::set_var(name, val);
+               } else {
+                    println!("Invalid property definition: {}", &arg);
+               }
           } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
                arg_n += 1;
                if arg_n < args.len() {
@@ -84,6 +95,8 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     
                     break;
                }
+          } else if arg.starts_with("-")  {
+               println!("Not supported option: {}", &arg);
           } else if arg_n > 0 {
                targets.push(arg);
           }

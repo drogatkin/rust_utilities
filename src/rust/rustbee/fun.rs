@@ -802,13 +802,13 @@ pub fn timestamp(p: &str) -> Option<String> {
     }
 }
 
+const DAYS_OF_WEEK: &[&str] = &["Thursday", "Friday", "Saturday",  "Sunday","Monday","Tuesday","Wednesday"]; 
+
 pub fn format_system_time(time: SystemTime) -> String {
     let dur = time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
     let (y,m,d,h,min,s,w) = time:: get_datetime(1970, dur.as_secs());
-    
-    let day_of_week = if w+4 > 6 {w-5} else {w+3};
-    println!{"week {} - {}", w, day_of_week} ;
-    format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s) 
+    println!{"week {} - {}", w, DAYS_OF_WEEK[w as usize]} ;
+    format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s) // see ISO 8601
 }
 
 pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {
