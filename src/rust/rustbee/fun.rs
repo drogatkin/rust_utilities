@@ -649,12 +649,26 @@ impl GenBlockTup {
                             return Some(VarVal::from_string(&format!("https://crates.io/api/v1/crates/{}/{}/download", &param.value[0..pos], &param.value[pos+1..])));
                         }
                     },
+                    VarType::RepositoryMaven => {
+                        let mut parts = param.value.split(':');
+                        let mav_parts: Vec<&str> = parts.collect();
+                        //https://repo1.maven.org/maven2/com/baomidou/mybatis-plus-boot-starter/3.5.3.1/mybatis-plus-boot-starter-3.5.3.1.jar
+                        return Some(VarVal::from_string(&format!("https://repo1.maven.org/maven2/{}/{}/{}/{}-{}.jar", &mav_parts[0].replace(".", "/"), &mav_parts[1], &mav_parts[2], &mav_parts[1], &mav_parts[2])));
+                    },
                     _ => ()
                    }
                }
             },
             "assign" => {
                 log.error(&format!("assign function has to be called as exec_assign"));
+            },
+            "array" => {
+                let mut res : Vec<String> = Vec::new();
+                for i in 0..fun_block.params.len() {
+                    let param = *self.parameter(&log, i, fun_block, res_prev);
+                    res.push(param);
+                }
+                return Some(VarVal::from_vec(&res));
             },
             "panic" => {
                 panic!("{}", self.parameter(&log, 0, fun_block, res_prev));

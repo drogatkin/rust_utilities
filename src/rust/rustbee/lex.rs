@@ -1120,7 +1120,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 current_name = name.to_string();
             },
             Lexem::Value(value) => {
-               // state = LexState::End;
+               // consider it can be an array in form [v1,v2,...vn]
                 
                 let c_b = VarVal{val_type:VarType::Generic, value:value, values: Vec::new()};
                 scoped_block.0.as_ref().borrow_mut().vars.insert(current_name.to_string(), c_b);
