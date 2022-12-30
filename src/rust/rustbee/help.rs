@@ -4,12 +4,9 @@ rb [target [target2 [target3] ...]] [options] [-- parameter1 [...parameter2..]]
 Options: 
   -help, -h              print this message
   -version               print the version information and exit
-  -diagnostics           print information that might be helpful to
-                         diagnose or report problems
   -quiet, -q             be extra quiet
   -verbose, -v           be extra verbose
   -debug, -d             print debugging information
-  -lib <path>            specifies a path to search for jars and classes
   -logfile <file>        use given file for log
   -l     <file>          ''
   -noinput               do not allow interactive input
@@ -23,7 +20,6 @@ Options:
   -D<property>=<value>   use a value for a given property name
   -propertyfile <name>   load all properties from file with -D
                          properties taking precedence
-  -xpropertyfile <name>  '' - from XML file
   -inputhandler <class>  the class which will handle input requests
   -find [<file>]         (s)earch for buildfile towards the root of 
   -s  [<file>]           the filesystem and use it 

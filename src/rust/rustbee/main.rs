@@ -43,7 +43,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                if arg_n < args.len() {
                     options.push(CmdOption::ScriptFile(args[arg_n].to_string()));
                } else {
-                    println!("No file path specified in -file option");
+                    log.error(&format!("No file path specified in -file option"));
                }
           } else if arg.starts_with("-s") || arg.starts_with("-find") {
                arg_n += 1;
@@ -73,7 +73,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     let val = &prop_def[pos+1..];
                     env::set_var(name, val);
                } else {
-                    println!("Invalid property definition: {}", &arg);
+                    log.error(&format!("Invalid property definition: {}", &arg));
                }
           } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
                arg_n += 1;
@@ -96,7 +96,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     break;
                }
           } else if arg.starts_with("-")  {
-               println!("Not supported option: {}", &arg);
+               log.error(&format!("Not supported option: {}", &arg));
           } else if arg_n > 0 {
                targets.push(arg);
           }
