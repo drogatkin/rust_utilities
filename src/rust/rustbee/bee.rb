@@ -7,7 +7,7 @@ src=main.rs
 include(env);
 display("Shell ${Shell}, and custom ${File}")
 fake rb=${project}-1
-about fox=[a, brown, lazy, fox, runs, over]
+about fox=[a, brown, lazy  , fox, runs, over]
 
 target clean {
     dependency {true}
@@ -99,7 +99,16 @@ target run :.: {
             assign(new_str,${word}_${new_str})
             #display(${new_str})
         }
-        display(${~~})
+        display(${~~}) 
+
+        assign(new_str,)
+        for word:about fox  {
+            display(${word} at ${~index~})
+            assign(new_str,${word}_${new_str})
+            #display(${new_str})
+        }
+        display(${~~})      
+
         ask(Would you like to run ${project} 好的 ❤? [Y|n] , Y)
         assign(answer, ${~~})
         if {
