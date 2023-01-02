@@ -7,6 +7,7 @@ src=main.rs
 include(env);
 display("Shell ${Shell}, and custom ${File}")
 fake rb=${project}-1
+about fox=[a, brown, lazy, fox, runs, over]
 
 target clean {
     dependency {true}
@@ -58,7 +59,7 @@ target version update : . {
        
        write(ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.01-preview\", 4, & \"",${~~},"\")
+      (&\"1.00.02-preview\", 5, & \"",${~~},"\")
 }")  # or !now() inline
    }
 }

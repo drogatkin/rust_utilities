@@ -441,6 +441,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::StartValue => {
+                        state = LexState::InValue;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -448,6 +453,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                 match state {
                     LexState::Comment | LexState::InValue | LexState::InParam |
                     LexState::InQtLex | LexState::InQtValue | LexState::InQtParam => {
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::StartValue => {
+                        state = LexState::InValue;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -1200,6 +1210,9 @@ fn process_array_value(log: &Log, value : &str) -> Result<Vec<String>, String> {
                         state = LexState::BlankOrEnd;
                     },
                     LexState::EndQtParam => { },
+                    LexState::RangeStart | LexState:: StartParam => {
+
+                    },
                     _ => todo!("state: {:?}", state)
                 }
             },
@@ -1217,6 +1230,11 @@ fn process_array_value(log: &Log, value : &str) -> Result<Vec<String>, String> {
                     },
                     LexState::BlankOrEnd => {
                         state = LexState::InParam;
+                    },
+                    LexState::RangeStart | LexState::StartParam => {
+                        state = LexState::InParam;
+                        buf[pos] = c;
+                        pos += 1;
                     },
                     _ => todo!("state: {:?}", state)
                 }
