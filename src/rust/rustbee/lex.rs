@@ -62,7 +62,6 @@ enum LexState {
     InType,
     StartValue,
     InValue,
-  //  EndValue,
     RangeEnd,
     InParam,
     InParamBlank,
@@ -74,6 +73,7 @@ enum LexState {
     BlockStart,
     BlockEnd,
     EscapeParam,
+    EndQtParam,
     //BlankInParam,
     End
 }
@@ -1097,6 +1097,135 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
     Box::new(expanded_val)
 }
 
+fn process_array_value(log: &Log, value : &str) -> Result<Vec<String>, String> {
+    let mut buf = [' ';4096* 1];
+    let mut state: LexState = LexState::Begin;
+    let chars = value.chars();
+    let mut res : Vec<String> = Vec::new();
+    let mut blank_pos = 0;
+    let mut pos = 0;
+    for c in chars {
+        match c {
+            '[' => {
+                match state {
+                    LexState::Begin  => state = LexState::RangeStart,
+                    LexState::InParam | LexState::InQtParam | LexState::RangeStart => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+            },
+            ']' => {
+                match state {
+                 LexState::InQtParam  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::InParam => {
+                        let param = buf[0..pos].iter().collect();
+                        res.push(param);
+                        return Ok(res)
+                    },
+                    LexState::EndQtParam => {
+                        return Ok(res)
+                    } ,
+                    LexState::RangeStart => {
+                        return Ok(res)
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+            },
+            '"' => {
+                match state {
+                    LexState::RangeStart => {
+                        state = LexState::InQtParam;
+                    },
+                    LexState::InParam   => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::InQtParam => {
+                        state = LexState::EndQtParam;
+                        let param = buf[0..pos].iter().collect();
+                        res.push(param);
+                    },
+                    LexState::EscapeParam => {
+                        buf[pos] = c;
+                        pos += 1;
+                        state = LexState::InQtParam;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+            },
+            '\\' => {
+                match state {
+                    LexState::InParam  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::InQtParam  => {
+                        state = LexState::EscapeParam;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+            },
+            ',' => {
+                match state {
+                    LexState::InParam  => {
+                        let param = buf[0..pos].iter().collect();
+                        res.push(param);
+                        state = LexState:: StartParam;
+                    },
+                    LexState::InQtParam  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::EndQtParam => {
+                        state = LexState:: StartParam;
+                    }, 
+                    _ => todo!("state: {:?}", state)
+                }
+            },
+            ' ' | '\t' | '\n' | '\r' => {
+                match state {
+                    LexState::InQtParam  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::InParam  => {
+                        blank_pos = pos;
+                        buf[pos] = c;
+                        pos += 1;
+                        state = LexState::BlankOrEnd;
+                    },
+                    LexState::EndQtParam => { },
+                    _ => todo!("state: {:?}", state)
+                }
+            },
+            _ => {
+                match state {
+                    LexState::InParam | LexState::InQtParam  => {
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::EscapeParam => {
+                        buf[pos] = '\\';
+                        pos += 1;
+                        buf[pos] = c;
+                        pos += 1;
+                    },
+                    LexState::BlankOrEnd => {
+                        state = LexState::InParam;
+                    },
+                    _ => todo!("state: {:?}", state)
+                }
+            }
+        }
+    }
+    Err(value.to_string())
+}
+
 pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
     let mut all_chars =  match  open(file) {
         Err(e) => return Err(e),
@@ -1121,8 +1250,14 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
             },
             Lexem::Value(value) => {
                // consider it can be an array in form [v1,v2,...vn]
-                
-                let c_b = VarVal{val_type:VarType::Generic, value:value, values: Vec::new()};
+               let c_b = 
+                if value.starts_with("[") && value.ends_with("]") {
+                    let res = process_array_value(&log, &value);
+                    if res.is_ok() {
+                        VarVal::from_vec(&res.unwrap())
+                    } else {VarVal::from_string(&value)}
+                } else {VarVal::from_string(&value)}
+                ;
                 scoped_block.0.as_ref().borrow_mut().vars.insert(current_name.to_string(), c_b);
             },
             Lexem::Function(name) => {
@@ -1154,6 +1289,12 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                                 //let at_pos = 
                                 //  println!("env {} in {:?}", var.value, bl.block_type);
                                   let c_b = VarVal{val_type:VarType::RepositoryRust, value:var.value.clone(), values: Vec::new()};
+                                  bl.vars.insert(current_name.to_string(), c_b);
+                              },
+                              "rep-maven" => {
+                                //let at_pos = 
+                                //  println!("env {} in {:?}", var.value, bl.block_type);
+                                  let c_b = VarVal{val_type:VarType::RepositoryMaven, value:var.value.clone(), values: Vec::new()};
                                   bl.vars.insert(current_name.to_string(), c_b);
                               },
                             _ => ()
