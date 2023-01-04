@@ -194,7 +194,7 @@ impl Reader {
 }
 
 fn open(file: &str) -> io::Result<Reader> {
-    let mut res = Reader {
+    let  res = Reader {
         reader : File::open(file)?,
         pos : 0,
         end : 0,
@@ -1136,6 +1136,7 @@ fn process_array_value(log: &Log, value : &str) -> Result<Vec<String>, String> {
                         pos += 1;
                     },
                     LexState::InParam => {
+                        state = LexState::RangeEnd;
                         let param = buf[0..pos].iter().collect();
                         res.push(param);
                         return Ok(res)
@@ -1293,7 +1294,10 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                     let res = process_array_value(&log, &value);
                     if res.is_ok() {
                         VarVal::from_vec(&res.unwrap())
-                    } else {VarVal::from_string(&value)}
+                    } else {
+                        log.error(&format!{"An array doesn't look correctly: {}", &value});
+                        VarVal::from_string(&value)
+                    }
                 } else {VarVal::from_string(&value)}
                 ;
                 scoped_block.0.as_ref().borrow_mut().vars.insert(current_name.to_string(), c_b);

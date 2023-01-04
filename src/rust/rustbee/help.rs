@@ -3,10 +3,10 @@ pub fn get_help() -> String {
 rb [target [target2 [target3] ...]] [options] [-- parameter1 [...parameter2..]]
 Options: 
   -help, -h              print this message
-  -version               print the version information and exit
+  -version               print a version information
   -quiet, -q             be extra quiet
   -verbose, -v           be extra verbose
-  -debug, -d             print debugging information
+  -debug, -d             print a debugging information
   -logfile <file>        use given file for log
   -l     <file>          ''
   -noinput               do not allow interactive input

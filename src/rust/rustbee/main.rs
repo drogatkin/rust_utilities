@@ -1,13 +1,14 @@
 use std::fs;
 use std::env;
 use std::path::Path;
-use std::io::{self, Write};
+use std::io::{self, Write, BufRead};
 use std::io::{Error, ErrorKind};
 use log::Log;
 //use regex::Regex;
 use std::cell::RefCell;
 use std::rc::{Rc, Weak};
 use std::time::{SystemTime};
+use std::fs::File;
 
 mod help;
 mod ver;
@@ -179,7 +180,23 @@ fn main() -> io::Result<()> {
                     let dr = lex::VarVal{val_type:lex::VarType::Bool, value: String::from("true"), values: Vec::new()};
                     let _ = &lex_tree.add_var(String::from("~dry-run~"), dr);
                },
-               _ => ()
+               CmdOption::PropertyFile(filename) => {
+                    let file = File::open(filename)?;
+                    let lines = io::BufReader::new(file).lines();
+                    for line in lines {
+                         if let Ok(prop_def) = line {
+                              let eq_pos = prop_def.find('=');
+                              if eq_pos.is_some() {
+                                   let pos = eq_pos.unwrap();
+                                   let name = &prop_def[0..pos];
+                                   let val = &prop_def[pos+1..];
+                                   env::set_var(name, val);
+                              } else {
+                                   log.error(&format!("Invalid property definition: {}", &prop_def));
+                              }    
+                         }
+                     }
+               }
           }
      }
      if path == "_" {

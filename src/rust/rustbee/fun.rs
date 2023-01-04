@@ -623,7 +623,6 @@ impl GenBlockTup {
                 // relative to the parameter path
                 // check if 1 or 2 parameters only
                 let len = fun_block.params.len();
-                let result : Vec<String>= Vec::new();
                 let (dir1, ext1) = dir_ext_param(&self.parameter(&log, 0, fun_block, res_prev));
                 if dir1.is_none() || ext1.is_none() {
                     log.error(&format!("Parameter {} doesn't have path/ext pattern", &self.parameter(&log, 0, fun_block, res_prev)));
@@ -650,7 +649,7 @@ impl GenBlockTup {
                         }
                     },
                     VarType::RepositoryMaven => {
-                        let mut parts = param.value.split(':');
+                        let parts = param.value.split(':');
                         let mav_parts: Vec<&str> = parts.collect();
                         //https://repo1.maven.org/maven2/com/baomidou/mybatis-plus-boot-starter/3.5.3.1/mybatis-plus-boot-starter-3.5.3.1.jar
                         return Some(VarVal::from_string(&format!("https://repo1.maven.org/maven2/{}/{}/{}/{}-{}.jar", &mav_parts[0].replace(".", "/"), &mav_parts[1], &mav_parts[2], &mav_parts[1], &mav_parts[2])));
