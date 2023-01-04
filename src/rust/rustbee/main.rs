@@ -145,13 +145,19 @@ fn main() -> io::Result<()> {
      let (options, targets, run_args) = parse_command( &log, &args);
 
      let lex_tree = fun::GenBlockTup(Rc::new(RefCell::new(fun::GenBlock::new(fun::BlockType::Main))));
-     // add command arguments
-     let args = lex::VarVal{val_type:lex::VarType::Array, value: String::from(""), values: run_args};
      let mut real_targets: Vec<String> = Vec::new();
      for target in targets {
           real_targets.push(target.to_string());
      }
-     let _ = &lex_tree.add_var(String::from("~args~"), args);
+     let _ = &lex_tree.add_var(String::from("~args~"), lex::VarVal::from_vec(&run_args));
+     let _ = &lex_tree.add_var(String::from("~os~"),  lex::VarVal::from_string(std::env::consts::OS));
+     if std::env::consts::OS == "windows" {
+          let _ = &lex_tree.add_var(String::from("~separator~"),  lex::VarVal::from_string("\\"));
+          let _ = &lex_tree.add_var(String::from("~path_separator~"),  lex::VarVal::from_string(";"));
+     } else {
+          let _ = &lex_tree.add_var(String::from("~separator~"),  lex::VarVal::from_string("/"));
+          let _ = &lex_tree.add_var(String::from("~path_separator~"),  lex::VarVal::from_string(":"));
+     }
      //println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
      for opt in options {
           //println!("{:?}", opt);

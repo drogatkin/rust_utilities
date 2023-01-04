@@ -107,7 +107,7 @@ target run :.: {
         }
         display(${~~})      
 
-        ask(Would you like to run ${project} 好的 ❤? [Y|n] , Y)
+        ask(Would you like to run ${project} 好的 ❤ on ${~os~}? [Y|n] , Y)
         assign(answer, ${~~})
         if {
             eq(${answer},Y)
