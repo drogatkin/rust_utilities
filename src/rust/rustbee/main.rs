@@ -28,7 +28,8 @@ enum CmdOption {
      PropertyFile(String),
      Diagnostics,
      ForceRebuild,
-     DryRun
+     DryRun,
+     Quiet
 }
 
 fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Vec<&'a String>, Vec<String>) {
@@ -89,6 +90,8 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     log.error(&"Property file isn't specified".to_string());
                     break;
                }
+          } else if arg.starts_with("-q") {
+               options.push(CmdOption::Quiet);
           } else if arg == "--" { 
                arg_n += 1;
                if arg_n < args.len() {
@@ -138,8 +141,7 @@ fn find_script(dir: &Path) -> Option<String> {
 }
 
 fn main() -> io::Result<()> {
-     println!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2023);
-     let mut log = Log {debug : false, verbose : false};
+     let mut log = Log {debug : false, verbose : false, quiet : false};
      let mut path = "_".to_string();
      let args: Vec<String> = env::args().collect();
      let (options, targets, run_args) = parse_command( &log, &args);
@@ -169,6 +171,7 @@ fn main() -> io::Result<()> {
                CmdOption::Help => println!("{}", help::get_help()),
                CmdOption::Verbose => log.verbose = true,
                CmdOption::Diagnostics => log.debug = true,
+               CmdOption::Quiet => log.quiet = true,
                CmdOption::ScriptFile(file) => {
                     log.log(&format!("Script: {}", file));
                     
@@ -205,6 +208,10 @@ fn main() -> io::Result<()> {
                }
           }
      }
+     if !log.quiet {
+          println!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2023);
+     }
+     
      if path == "_" {
           let paths = fs::read_dir(&"./").unwrap();
           //let re = Regex::new(r"bee.*\.rb").unwrap(); if re.is_match(file_path)
