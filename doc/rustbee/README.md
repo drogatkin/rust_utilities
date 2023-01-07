@@ -9,7 +9,7 @@ advantages over 7Bee as:
 4. can work on systems where Java isn't supported
 
 ## Syntax highlights
-RB build script as 7Bee defines at least one build target. Several build
+RB build script defines at least one build target. Several build
 targets can be dependent, It is possible to define variables in a form:
 
     name=value
@@ -18,6 +18,13 @@ Name and value can be anything, but if a name includes spaces or '=' then
 name has to be quoted. If the name should include quote, then use \ for escaping it.
 The same rule is applied for a value. Although any name is allowed, all names starting with
 *~* and ending with *~* are reserved.
+
+A name as ~~ is reserved for a result previous operation.
+
+A separator for part of path is ~separator~
+
+A paths separator is ~path_separator~
+
 
 Target looks like :
     
@@ -31,7 +38,16 @@ Target looks like :
         }
      }
 
-Currently *if* and *for* operators are supported.
+Dependency can be:
+
+- **true**, for unconditional execution of the target
+- **target**, for dependency on the target
+- **anynewer**, function with two parameters, path to a file, second file has to be ewer
+- **eq** block, specifies that all arguments must be equal
+- **or** block, one of the arguments has to be true
+
+The body of a target contains a sequence of blocks and functions. 
+Currently *if* and *for* block operators are supported.
 
 Function can be the following:
 - **assign**, first parameter is a *name* of variable, the second is a value
@@ -53,5 +69,6 @@ otherwise returns false
 - **newerthan**, compares timestamp of files specified with a pattern path/*ext with timestamp of files specified using path/*ext and
 returns an array of file patch which have later date
 - **as_url**, returns a download URL of an artifact specified by a parameter
+- **array**, converts a list of parameters in an array, which can be consumed as a function result
 
 An example of a script for building a Java project, can be found [there](https://github.com/drogatkin/JustDSD/blob/master/bee-java.rb).
