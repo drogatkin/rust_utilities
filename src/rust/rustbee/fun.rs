@@ -8,6 +8,7 @@ use std::path::Path;
 use std::time::{ SystemTime};
 use std::fs;
 use std::fs::File;
+use std::fs::OpenOptions;
 use std::process::Command;
 //use http::{Request,Response};
 use time;
@@ -456,6 +457,21 @@ impl GenBlockTup {
                 let mut i = 1;
                 let len = fun_block.params.len();
                 while  i < len {
+                    write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).expect("Error in writing file!");
+                   i += 1;
+                }
+            },
+            "writea" => {
+                let fname = self.parameter(&log, 0, fun_block, res_prev);
+                let mut f = OpenOptions::new()
+                    .read(true)
+                    .append(true) 
+                    .create(true)
+                    .open(*fname).expect("Error encountered while opening file!");
+                let mut i = 1;
+                let len = fun_block.params.len();
+                while  i < len {
+                    //log.log(&format!("->{}",self.parameter(&log, i, fun_block, res_prev)));
                     write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).expect("Error in writing file!");
                    i += 1;
                 }

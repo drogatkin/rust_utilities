@@ -1347,7 +1347,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 }
             },
             Lexem::Parameter(value) => { // collect all parameters and then process function call
-                let value1 = value.trim().to_string();
+                let value1 = value.to_string();
                // println!("trimmed val {}", value1.trim());
                let mut name : Option<String> = None;
                {
