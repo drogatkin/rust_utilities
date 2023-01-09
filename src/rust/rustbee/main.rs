@@ -130,6 +130,7 @@ fn find_script(dir: &Path, name: &str) -> Option<String> {
                           if let Some(path1) = path.file_name() {
                                if let Some(file_path) = path1.to_str() {
                                     if is_bee_scrpt(&file_path) {
+                                        env::set_var("PWD", curr_dir.to_str().unwrap());
                                          return Some(file_path.to_string());
                                     }
                                }
@@ -177,6 +178,8 @@ fn main() -> io::Result<()> {
           let _ = &lex_tree.add_var(String::from("~separator~"),  lex::VarVal::from_string("/"));
           let _ = &lex_tree.add_var(String::from("~path_separator~"),  lex::VarVal::from_string(":"));
      }
+     let cwd = Path::new(&".").canonicalize().unwrap().into_os_string().into_string().unwrap();
+     lex_tree.add_var(String::from("~cwd~"),  lex::VarVal::from_string(&cwd));
      //println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
      for opt in options {
           //println!("{:?}", opt);
@@ -199,6 +202,9 @@ fn main() -> io::Result<()> {
                     let path1 = find_script(&Path::new("."), &file);
                     if path1.is_some() {
                          path = path1.unwrap();
+                         let mut path1 = Path::new(&path);
+                         let cwd = path1.parent().unwrap().to_str().unwrap();
+                         lex_tree.add_var(String::from("~cwd~"), lex::VarVal::from_string(&cwd));
                     } else {
                          log.error(&format!("Script: {} not found", file));
                          return Err(Error::from_raw_os_error(-2)/*Error::new(ErrorKind::Other, "Script not found")*/);

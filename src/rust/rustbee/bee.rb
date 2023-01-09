@@ -1,9 +1,9 @@
 # a build script for the project using this project
 
-env =./env.rb:file
+env =${~cwd~}/env.rb:file # ${~cwd~}
 project  =rb
 RUSTC=/home/dmitriy/AndroidStudioProjects/rust/build/x86_64-unknown-linux-gnu/stage2/bin/rustc
-src=main.rs
+src=${~cwd~}/main.rs
 include(env);
 display("Shell ${Shell}, and custom ${File}")
 fake rb=${project}-1
@@ -59,7 +59,7 @@ target version update : . {
        
        write(ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.02-preview\", 5, & \"",${~~},"\")
+      (&\"1.00.03-nightly\", 6, & \"",${~~},"\")
 }")  # or !now() inline
    }
 }
@@ -106,7 +106,7 @@ target run :.: {
             assign(new_str,${word}_${new_str})
         }
         display(${~~})      
-
+         display(Current dir : ${~cwd~})
         ask(Would you like to run ${project} 好的 ❤ on ${~os~}? [Y|n] , Y)
         assign(answer, ${~~})
         if {

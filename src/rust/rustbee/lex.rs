@@ -1370,22 +1370,28 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                                 }
                             },
                             "include" => {
+                                //println!{"search {:?}", &value};
                                 match scoped_block.search_up(&value) {
                                     Some(var) => {
                                       // println!("found {:?}", var);
                                        match var.val_type {
                                             VarType::File => {
-                                                let clone_var = var.value.clone();
+                                                let clone_var = *process_template_value(&log, &var.value, &scoped_block.0.as_ref().borrow_mut(), &None);
                                                 let parent_scoped_block = scoped_block.parent();
                                                 if let Some(block) = parent_scoped_block {
-                                                    process(log, clone_var.as_str(), block.clone())?;
+                                                    process(&log, clone_var.as_str(), block.clone())?;
                                                 }
-                                                
                                             },
                                             _ => ()
                                        }
                                     },
                                     None => {
+                                        let temp_expand = *process_template_value(&log, &value, &scoped_block.0.as_ref().borrow_mut(), &None);
+                                        log.debug(&format!{"Expanded include template {}", temp_expand});
+                                        let parent_scoped_block = scoped_block.parent();
+                                        if let Some(block) = parent_scoped_block {
+                                            process(&log, &temp_expand, block.clone())?;
+                                        }
                                     }
                                 }
                             },
