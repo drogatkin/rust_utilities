@@ -114,26 +114,43 @@ fn is_bee_scrpt(file_path: &str) -> bool {
      file_path.starts_with("bee") && file_path.ends_with(".rb") 
 }
 
-fn find_script(dir: &Path) -> Option<String> {
-     let mut curr_dir = dir;
+fn find_script(dir: &Path, name: &str) -> Option<String> {
+     let absolute = fs::canonicalize(&dir.to_path_buf());
+     if !absolute.is_ok() {
+          return None
+     }
+     let binding = absolute.unwrap();
+     let mut curr_dir = binding.as_path();
      while curr_dir.is_dir() {
-          for entry in fs::read_dir(curr_dir).unwrap() {
-              let entry = entry.unwrap();
-              let path = entry.path();
-              if path.is_file() {
-                    if let Some(path1) = path.file_name() {
-                         if let Some(file_path) = path1.to_str() {
-                              if is_bee_scrpt(&file_path) {
-                                   return Some(file_path.to_string());
-                              }
-                         }
-                    }
+          if name == "_" {
+               for entry in fs::read_dir(curr_dir).unwrap() {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_file() {
+                          if let Some(path1) = path.file_name() {
+                               if let Some(file_path) = path1.to_str() {
+                                    if is_bee_scrpt(&file_path) {
+                                         return Some(file_path.to_string());
+                                    }
+                               }
+                          }
+                     }
+                }
+          } else {
+               let mut path_buf = curr_dir.to_path_buf();
+               path_buf.push(name);
+               let script_path = path_buf.as_path();
+               //println!{"-> {:?}", script_path};
+               if script_path.exists() {
+                    env::set_var("PWD", curr_dir.to_str().unwrap());
+                    return Some(script_path.to_str().unwrap().to_string());
                }
-          }
-          
+          }        
           if let Some(dir1) = curr_dir.parent() {
                curr_dir = dir1;
+               //println!{"looking in parent {:?}", curr_dir};
           } else {
+               //println!{"no parent for {:?}", curr_dir};
                break;
           }
      }
@@ -179,7 +196,7 @@ fn main() -> io::Result<()> {
                },
                CmdOption::SearchUp(file) => {
                     log.log(&format!("Search: {}", file));
-                    let path1 = find_script(&Path::new(&file));
+                    let path1 = find_script(&Path::new("."), &file);
                     if path1.is_some() {
                          path = path1.unwrap();
                     } else {
