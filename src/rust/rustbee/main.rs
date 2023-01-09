@@ -179,7 +179,13 @@ fn main() -> io::Result<()> {
                },
                CmdOption::SearchUp(file) => {
                     log.log(&format!("Search: {}", file));
-
+                    let path1 = find_script(&Path::new(&file));
+                    if path1.is_some() {
+                         path = path1.unwrap();
+                    } else {
+                         log.error(&format!("Script: {} not found", file));
+                         return Err(Error::from_raw_os_error(-2)/*Error::new(ErrorKind::Other, "Script not found")*/);
+                    }
                },
                CmdOption::ForceRebuild => {
                     let fb = lex::VarVal{val_type:lex::VarType::Bool, value: String::from("true"), values: Vec::new()};
