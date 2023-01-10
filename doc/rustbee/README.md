@@ -20,13 +20,11 @@ The same rule is applied for a value. Although any name is allowed, all names st
 *~* and ending with *~* are reserved.
 
 A name as ~~ is reserved for a result previous operation.
-
-A separator for part of path is \~separator~\
-
-A paths separator is \~path_separator~\
-
+A separator for part of path is \~separator\~
+A paths separator is \~path_separator\~
 An array of a command line arguments is \~args\~
-
+A string representing the current OS \~os\~
+A current working directory \~cwd\~
 
 Target looks like :
     

@@ -37,20 +37,26 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
      let mut arg_n = 0;
      while arg_n < args.len() {
          let arg = &args[arg_n] ;
+         let len = args.len();
          //println!("analizing {}", arg);
           if arg.starts_with("-h") {
               options.push(CmdOption::Help);
           } else if arg == &"-f" || arg.starts_with("-file"){
                arg_n += 1;
-               if arg_n < args.len() {
+               if arg_n < len {
                     options.push(CmdOption::ScriptFile(args[arg_n].to_string()));
                } else {
                     log.error(&format!("No file path specified in -file option"));
                }
           } else if arg.starts_with("-s") || arg.starts_with("-find") {
                arg_n += 1;
-               if arg_n < args.len() {
-                    options.push(CmdOption::SearchUp(args[arg_n].to_string()));
+               if arg_n < len {
+                    if args[arg_n].starts_with("-") {
+                         options.push(CmdOption::SearchUp("_".to_string()));
+                         arg_n -= 1;
+                    } else {
+                         options.push(CmdOption::SearchUp(args[arg_n].to_string()));
+                    }
                } else {
                     options.push(CmdOption::SearchUp("_".to_string()));
                     break;
@@ -79,7 +85,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                }
           } else if arg.starts_with("-xprop") || arg.starts_with("-prop") {
                arg_n += 1;
-               if arg_n < args.len() {
+               if arg_n < len {
                     if args[arg_n].starts_with("-") {
                          log.error(&"No property file specified");
                          arg_n -= 1;
@@ -94,7 +100,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                options.push(CmdOption::Quiet);
           } else if arg == "--" { 
                arg_n += 1;
-               if arg_n < args.len() {
+               if arg_n < len {
                     run_args.extend_from_slice( &args[arg_n..]);
                     
                     break;
@@ -131,7 +137,7 @@ fn find_script(dir: &Path, name: &str) -> Option<String> {
                                if let Some(file_path) = path1.to_str() {
                                     if is_bee_scrpt(&file_path) {
                                         env::set_var("PWD", curr_dir.to_str().unwrap());
-                                         return Some(file_path.to_string());
+                                         return Some(path.to_str().unwrap().to_string());
                                     }
                                }
                           }
