@@ -20,7 +20,7 @@ Options:
   -D<property>=<value>   use a value for a given property name
   -propertyfile <name>   load all properties from file with -D
                          properties taking precedence
-  -inputhandler <class>  the class which will handle input requests
+  -input                 input responses read from a pipe instead of a console
   -find [<file>]         (s)earch for buildfile towards the root of 
   -s  [<file>]           the filesystem and use it 
   -targethelp            print all target names in a build file with descriptions/comments

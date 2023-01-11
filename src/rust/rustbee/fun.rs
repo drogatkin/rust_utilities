@@ -609,7 +609,7 @@ impl GenBlockTup {
                 let stdin = io::stdin();
                 stdin.read_line(&mut user_input);
                 user_input = user_input.trim().to_string();
-                if user_input.len() == 0 && len > 1 {
+                if user_input.is_empty() && len > 1 {
                     user_input = *self.parameter(&log, 1, fun_block, res_prev);
                 }
                 println!("");
@@ -735,7 +735,7 @@ impl GenBlockTup {
 pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Result<()> {
     let naked_block = block.0.borrow();
    
-    if targets.len() == 0 { 
+    if targets.is_empty() { 
         let mut tar_name : Option<String> = None;
         for ch in &naked_block.children {
             let ch_block = ch.0.borrow();

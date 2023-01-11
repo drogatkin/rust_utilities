@@ -29,7 +29,8 @@ enum CmdOption {
      Diagnostics,
      ForceRebuild,
      DryRun,
-     Quiet
+     Quiet,
+     TargetHelp
 }
 
 fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Vec<&'a String>, Vec<String>) {
@@ -41,7 +42,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
          //println!("analizing {}", arg);
           if arg.starts_with("-h") {
               options.push(CmdOption::Help);
-          } else if arg == &"-f" || arg.starts_with("-file"){
+          } else if arg == &"-f" || arg.starts_with("-file") || arg.starts_with("-build") {
                arg_n += 1;
                if arg_n < len {
                     options.push(CmdOption::ScriptFile(args[arg_n].to_string()));
@@ -98,6 +99,8 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                }
           } else if arg.starts_with("-q") {
                options.push(CmdOption::Quiet);
+          } else if arg.starts_with("-th") || arg.starts_with("-targethelp") {
+               options.push(CmdOption::TargetHelp);
           } else if arg == "--" { 
                arg_n += 1;
                if arg_n < len {
@@ -187,6 +190,7 @@ fn main() -> io::Result<()> {
      let cwd = Path::new(&".").canonicalize().unwrap().into_os_string().into_string().unwrap();
      lex_tree.add_var(String::from("~cwd~"),  lex::VarVal::from_string(&cwd));
      //println!("additional ars {:?}", lex_tree.search_up(&String::from("~args~")));
+     let mut target_help = false;
      for opt in options {
           //println!("{:?}", opt);
           match opt {
@@ -194,7 +198,7 @@ fn main() -> io::Result<()> {
                     let (ver, build, date) = ver::version();
                     println!("RB Version: {}, build: {} on {}", ver, build, date);
                },
-               CmdOption::Help => println!("{}", help::get_help()),
+               CmdOption::Help => { println!("{}", help::get_help()); return Ok(())},
                CmdOption::Verbose => log.verbose = true,
                CmdOption::Diagnostics => log.debug = true,
                CmdOption::Quiet => log.quiet = true,
@@ -208,7 +212,7 @@ fn main() -> io::Result<()> {
                     let path1 = find_script(&Path::new("."), &file);
                     if path1.is_some() {
                          path = path1.unwrap();
-                         let mut path1 = Path::new(&path);
+                         let path1 = Path::new(&path);
                          let cwd = path1.parent().unwrap().to_str().unwrap();
                          lex_tree.add_var(String::from("~cwd~"), lex::VarVal::from_string(&cwd));
                     } else {
@@ -240,7 +244,8 @@ fn main() -> io::Result<()> {
                               }    
                          }
                      }
-               }
+               },
+               CmdOption::TargetHelp => target_help = true
           }
      }
      if !log.quiet {
@@ -277,8 +282,18 @@ fn main() -> io::Result<()> {
      
      let exec_tree = lex_tree.clone();
      lex::process(&log, &path, lex_tree)?;
-      
-     fun::run(&log, exec_tree, &mut real_targets);
+      if target_help {
+          let tree = exec_tree.0.borrow();
+         for child_tree in &tree.children {
+                let child = child_tree.0.borrow();
+               if child .block_type == fun::BlockType::Target {
+                    log.message(&format!("Target {:?} as {:?}", child.name, child.flex));
+               }
+         }
+      } else {
+          fun::run(&log, exec_tree, &mut real_targets);
+      }
+     
      match sys_time.elapsed() {
           Ok(elapsed) => {
                log.log(&format!("Finished in {} sec(s)", elapsed.as_secs()));
