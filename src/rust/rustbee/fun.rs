@@ -164,8 +164,8 @@ impl GenBlockTup {
                             let target = self.get_target(&dep_block.params[0]);
                             match target {
                                 Some(target) => {
-                                    let target_bor = target.0.borrow();
-                                    return exec_target(&log, &target_bor);
+                                    //let target_bor = target.0.borrow_mut();
+                                    return exec_target(&log, & target);
                                 },
                                 _ => ()
                             }
@@ -756,7 +756,7 @@ pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Resu
            // let clone_bl = bl.clone();
             let ch_block = bl.0.borrow();
             if ch_block.block_type == BlockType::Target && ch_block.name.as_ref().unwrap() == target { 
-                log.log(&format!("target: {}", exec_target(&log, &ch_block)));
+                log.log(&format!("target: {}", exec_target(&log, & bl)));
                 continue 'targets;
             }
         }
@@ -766,23 +766,41 @@ pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Resu
     Ok(())
 }
 
-pub fn exec_target(log: &Log, target: &GenBlock /*, res_prev: &Option<String>*/) -> bool {
+pub fn exec_target(log: &Log, target_bl: & GenBlockTup) -> bool {
     // dependencies
     let mut need_exec = false;
-    log.debug(&format!("processing: {} deps of {:?}", &target.deps.len(), &target.name));
-    for dep in &target.deps {
-        need_exec |= dep.eval_dep(&log, &None);
-    }
-    let force_build = &target.parent.as_ref().unwrap().search_up(&"~force-build-target~".to_string());
-    if let Some(_force_build) = force_build {
-        need_exec = true;
-    }
-    if need_exec {
-        for child in &target.children {
-            child.exec(&log, &None);
+    {
+        let target = target_bl.0.borrow();
+        log.debug(&format!("processing: {} deps of {:?}", &target.deps.len(), &target.name));
+        for dep in &target.deps {
+            need_exec |= dep.eval_dep(&log, &None);
         }
+        let force_build = &target.parent.as_ref().unwrap().search_up(&"~force-build-target~".to_string());
+        if let Some(_force_build) = force_build {
+            need_exec = true;
+        }
+    }
+    
+    if need_exec {
+        if target_bl.0.borrow().dir.is_some() {
+            let dir = target_bl.0.borrow().dir.as_ref().unwrap().to_string();
+            if !dir.is_empty() {
+               let path =  Path::new(&dir);
+               if path.exists() {
+                    let cwd = path.canonicalize().unwrap().into_os_string().into_string().unwrap();
+                    target_bl.0.borrow_mut().vars.insert(String::from("~cwd~"),  VarVal::from_string(&cwd));
+               }
+            }
+        }
+        {
+            let target = target_bl.0.borrow();
+            for child in &target.children {
+                child.exec(&log, &None);
+            }
+        }
+        
     } else {
-        log.debug(&format!("no need to run: {:?}", &target.name));
+        log.debug(&format!("no need to run: {:?}", &target_bl.0.borrow().name));
     }
     need_exec
 } 

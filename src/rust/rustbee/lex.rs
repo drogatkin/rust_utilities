@@ -962,6 +962,7 @@ fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -
 }
 
 pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
+    // String interpolation
     let mut buf = [' ';4096* 1];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;

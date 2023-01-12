@@ -196,9 +196,9 @@ fn main() -> io::Result<()> {
           match opt {
                CmdOption::Version => {
                     let (ver, build, date) = ver::version();
-                    println!("RB Version: {}, build: {} on {}", ver, build, date);
+                    log.message(&format!("RB Version: {}, build: {} on {}", ver, build, date));
                },
-               CmdOption::Help => { println!("{}", help::get_help()); return Ok(())},
+               CmdOption::Help => { log.message(&format!("{}", help::get_help())); return Ok(())},
                CmdOption::Verbose => log.verbose = true,
                CmdOption::Diagnostics => log.debug = true,
                CmdOption::Quiet => log.quiet = true,
@@ -249,7 +249,7 @@ fn main() -> io::Result<()> {
           }
      }
      if !log.quiet {
-          println!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2023);
+          log.message(&format!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2023));
      }
      
      if path == "_" {
