@@ -1414,11 +1414,17 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                 log.debug(&format!("Type: {}, name: {}, work dir: '{}', path; '{}'", type_hdr,name,work,path));
                 match type_hdr.as_str() {
                     "target" => {
-                        let mut inner_block = GenBlock::new(BlockType::Target);
-                        inner_block.name = Some(name);
-                        inner_block.dir = Some(work);
-        
-                        scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                        // check if a target with the name exist
+                        let target = scoped_block.get_target(&name);
+                        if target.is_none() {
+                            let mut inner_block = GenBlock::new(BlockType::Target);
+                            inner_block.name = Some(name);
+                            inner_block.dir = Some(work);
+                            inner_block.flex = Some(path);
+                            scoped_block =  scoped_block.add(GenBlockTup(Rc::new(RefCell::new(inner_block))));
+                        } else {
+                            log.error(&format!("Target {} is already exists", &name));
+                        }
                     },
                     "eq" => {
                         let  inner_block = GenBlock::new(BlockType::Eq);

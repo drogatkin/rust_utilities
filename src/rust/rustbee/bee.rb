@@ -12,12 +12,12 @@ about fox=[a, brown, lazy  , fox, runs, over]
 target clean {
     dependency {true}
     exec rm  (
-        project,
-        ver.rs
+        ${~cwd~}/${project},
+        ${~cwd~}/ver.rs
     )
 }
 
-target install {
+target install::Install RustBee for use by everyone {
     dependency {true}
     {
         if {
@@ -44,11 +44,11 @@ target install {
 
 target version update : . {
    dependency {
-         anynewer(./*.rs,${project})
+         anynewer(${~cwd~}/*.rs,${~cwd~}/${project})
    }
     dependency {
       eq {
-        timestamp(ver.rs)
+        timestamp(${~cwd~}/ver.rs)
         # none
      }
    }
@@ -57,7 +57,7 @@ target version update : . {
        display(Generating ver.rs)
        now()
        
-       write(ver.rs,"// auto generated
+       write(${~cwd~}/ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
       (&\"1.00.03-nightly\", 6, & \"",${~~},"\")
 }")  # or !now() inline
@@ -69,7 +69,7 @@ target build:. {
         target(version update)
    }
    dependency {
-       anynewer(bee.rb,${project})
+       anynewer(${~cwd~}/bee.rb,${~cwd~}/${project})
    }
    {
       display(Compiling ${src} ...)

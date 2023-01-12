@@ -161,7 +161,7 @@ impl GenBlockTup {
                     match dep_block.name.as_ref().unwrap().as_str() {
                         "target" => {
                             log.debug(&format!("evaluating target: {}", dep_block.params[0]));
-                            let target = self.get_target(dep_block.params[0].to_string());
+                            let target = self.get_target(&dep_block.params[0]);
                             match target {
                                 Some(target) => {
                                     let target_bor = target.0.borrow();
@@ -256,14 +256,14 @@ impl GenBlockTup {
         }
     }
 
-    pub fn get_target(&self, name: String) -> Option<GenBlockTup> {
+    pub fn get_target(&self, name: &String) -> Option<GenBlockTup> {
         let top_block = &self.get_top_block();
         let naked_block = top_block.0.borrow();
         for ch in &naked_block.children {
             let ch_block = ch.0.borrow();
             if ch_block.block_type == BlockType::Target {
                 if let Some(name1) = &ch_block.name {
-                    if *name1 == name {
+                    if name1 == name {
                        // tar_name = ch_block.name.as_ref().unwrap().to_string();
                         return  Some(ch.clone());
                      }
