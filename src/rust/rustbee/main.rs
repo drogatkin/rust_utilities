@@ -291,7 +291,7 @@ fn main() -> io::Result<()> {
                }
          }
       } else {
-          fun::run(&log, exec_tree, &mut real_targets);
+          fun::run(&log, exec_tree, &mut real_targets)?;
       }
      
      match sys_time.elapsed() {

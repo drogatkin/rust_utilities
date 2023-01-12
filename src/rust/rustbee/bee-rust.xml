@@ -41,7 +41,7 @@
          <parameter value="ver.rs" type="file"/>
          <parameter>// auto generated
 pub fn version() -> (&amp;'static str, u32, &amp;'static str) {
-      (&amp;&quot;1.00.01&quot;, 1, &amp;&quot;</parameter>
+      (&amp;&quot;1.00.0x-bootstrap&quot;, 1, &amp;&quot;</parameter>
          <parameter>
              <function name="now"/>
          </parameter>

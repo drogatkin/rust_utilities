@@ -50,7 +50,7 @@ pub struct GenBlock {
 #[derive(Clone, Debug)]
 pub struct GenBlockTup(pub Rc<RefCell<GenBlock>>);
 
-pub type WeakGenBlock = Weak<RefCell<GenBlock>>;
+pub type WeakGenBlock = Weak<RefCell<GenBlock>>; // use Rc::new_cyclic
 
 impl GenBlock {
     pub fn new (block_type: BlockType) -> GenBlock {
@@ -521,7 +521,7 @@ impl GenBlockTup {
                     } 
                 }
                 let dry_run = self.search_up(&"~dry-run~".to_string());
-                if let Some(dry_run) = dry_run {
+                if let Some(_dry_run) = dry_run {
                    log.log(&format!("command: {:?} {:?}", exec, params));
                    return Some(VarVal::from_i32(0));
                 } else {
@@ -607,7 +607,10 @@ impl GenBlockTup {
                 io::stdout().flush().unwrap();
                 let mut user_input = String::new();
                 let stdin = io::stdin();
-                stdin.read_line(&mut user_input);
+                let res = stdin.read_line(&mut user_input);
+                if res.is_err() {
+                    log.error(&format!{"An error in getting use input, default is used"});
+                }
                 user_input = user_input.trim().to_string();
                 if user_input.is_empty() && len > 1 {
                     user_input = *self.parameter(&log, 1, fun_block, res_prev);
@@ -853,12 +856,12 @@ const DAYS_OF_WEEK: &[&str] = &["Thursday", "Friday", "Saturday",  "Sunday","Mon
 
 pub fn format_system_time(time: SystemTime) -> String {
     let dur = time.duration_since(SystemTime::UNIX_EPOCH).unwrap();
-    let (y,m,d,h,min,s,w) = time:: get_datetime(1970, dur.as_secs());
+    let (y,m,d,h,min,s,_w) = time:: get_datetime(1970, dur.as_secs());
     //println!{"week {} - {}", w, DAYS_OF_WEEK[w as usize]} ;
     format!("{:0>2}{:0>2}{:0>2}T{:0>2}{:0>2}{:0>2}Z", y,m,d,h,min,s) // see ISO 8601
 }
 
-pub fn exec_anynewer(block:&GenBlockTup, p1: &String, p2: &String) -> bool {
+pub fn exec_anynewer(_block:&GenBlockTup, p1: &String, p2: &String) -> bool {
     let t1 = newest(p1);
     let t2 = newest(p2);
   //  println!{"modified {:?} and {:?}", t1, t2};
