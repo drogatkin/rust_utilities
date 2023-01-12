@@ -19,16 +19,16 @@ name has to be quoted. If the name should include quote, then use \ for escaping
 The same rule is applied for a value. Although any name is allowed, all names starting with
 *~* and ending with *~* are reserved.
 
-A name as ~~ is reserved for a result previous operation.
-A separator for part of path is \~separator\~
-A paths separator is \~path_separator\~
-An array of a command line arguments is \~args\~
-A string representing the current OS \~os\~
-A current working directory \~cwd\~
+- A name as ~~ is reserved for a result previous operation.
+- A separator for part of path is \~separator\~
+- A paths separator is \~path_separator\~
+- An array of a command line arguments is \~args\~
+- A string representing the current OS is \~os\~
+- A current working directory \~cwd\~
 
-Target looks like :
+A target looks like :
     
-     target name {
+     target name::description {
         dependency {...}
          ...
         dependency {...}
