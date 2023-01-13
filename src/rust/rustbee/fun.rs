@@ -521,13 +521,28 @@ impl GenBlockTup {
                     } 
                 }
                 let dry_run = self.search_up(&"~dry-run~".to_string());
+                let mut cwd = String::new();
+                if fun_block.dir.is_some() {
+                    let work_dir_val = fun_block.dir.as_ref().unwrap().to_string();
+                    if !work_dir_val.is_empty() {
+                        let work_dir = *process_template_value(&log, &work_dir_val, fun_block, res_prev);
+                        let path =  Path::new(&work_dir);
+                        if path.exists() {
+                            cwd = path.canonicalize().unwrap().into_os_string().into_string().unwrap();
+                        }
+                    }
+                }
+                
                 if let Some(_dry_run) = dry_run {
-                   log.log(&format!("command: {:?} {:?}", exec, params));
+                   log.log(&format!("command: {:?} {:?} in {}", exec, params, cwd));
                    return Some(VarVal::from_i32(0));
                 } else {
-                    let status = Command::new(&exec)
+                    let status = if cwd.is_empty() { Command::new(&exec)
                     .args(&params)
-                    .status().expect(&format!("{} command with {:?} failed to start", exec, params));
+                    .status().expect(&format!("{} command with {:?} failed to start", exec, params)) } else {
+                        Command::new(&exec).current_dir(&cwd)
+                        .status().expect(&format!("{} command with {:?} in {} failed to start", exec, params, cwd)) 
+                    };
                     match status.code() {
                         Some(code) => {
                             return Some(VarVal::from_i32(code));},
@@ -786,8 +801,9 @@ pub fn exec_target(log: &Log, target_bl: & GenBlockTup) -> bool {
     
     if need_exec {
         if target_bl.0.borrow().dir.is_some() {
-            let dir = target_bl.0.borrow().dir.as_ref().unwrap().to_string();
-            if !dir.is_empty() {
+            let dir_val = target_bl.0.borrow().dir.as_ref().unwrap().to_string();
+            if !dir_val.is_empty() {
+                let dir = *process_template_value(&log, &dir_val, &target_bl.0.borrow(), &None);
                let path =  Path::new(&dir);
                if path.exists() {
                     let cwd = path.canonicalize().unwrap().into_os_string().into_string().unwrap();

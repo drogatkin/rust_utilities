@@ -75,7 +75,7 @@ target build:. {
       display(Compiling ${src} ...)
        exec RUSTC::  (
            -o,
-           ${project},
+           ${~cwd~}/${project},
            ${src}
        )
      if {
@@ -114,7 +114,7 @@ target run :.: {
             then {
                 now()
                 display(${~~})
-                exec fake rb (
+                exec fake rb:. (
                     ~args~
                    )
             }
