@@ -10,25 +10,25 @@ advantages over 7Bee as:
 
 ## Syntax highlights
 RB build script defines at least one build target. Several build
-targets can be dependent, It is possible to define variables in a form:
+targets can be dependent. A build variable can be defined in a form:
 
     name=value
 
 Name and value can be anything, but if a name includes spaces or '=' then
-name has to be quoted. If the name should include quote, then use \ for escaping it.
+name has to be quoted. If the name should include quot, then use \ for escaping it.
 The same rule is applied for a value. Although any name is allowed, all names starting with
 *~* and ending with *~* are reserved.
 
 - A name as ~~ is reserved for a result previous operation.
-- A separator for part of path is \~separator\~
+- A separator for parts of a path is \~separator\~
 - A paths separator is \~path_separator\~
 - An array of a command line arguments is \~args\~
 - A string representing the current OS is \~os\~
 - A current working directory \~cwd\~
 
-A target looks like :
+A target is defined as :
     
-     target name::description {
+     target name:[work dir]:[description] {
         dependency {...}
          ...
         dependency {...}
