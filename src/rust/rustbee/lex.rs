@@ -483,7 +483,10 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    _ => todo!()
+                    LexState::BlockStart => {
+                        return (Lexem::BlockHdr("".to_string()), state);
+                    },
+                    _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
             '}' => {
