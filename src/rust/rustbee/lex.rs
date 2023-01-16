@@ -634,6 +634,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::StartValue => {
+                        state = LexState::InValue;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -787,7 +792,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
     (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state)
 }
 
-fn process_lex_header(log: &Log, value : &str, vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
+fn process_lex_header(log: &Log, value : &str, _vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
     let mut buf = [' ';4096* 12];
 
     let chars = value.chars();

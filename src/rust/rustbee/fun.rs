@@ -577,6 +577,7 @@ impl GenBlockTup {
                     Some(vec_param) => { 
                         if vec_param.val_type == VarType::Array {
                             let mut collect_str = vec_param.values[0].to_owned();
+                            collect_str.push_str(&sep);
                             let mut next_el = 1;
                             while next_el < vec_param.values.len() {
                                 collect_str.push_str(&vec_param.values[next_el]);
@@ -618,6 +619,7 @@ impl GenBlockTup {
             },
             "ask" => {
                 let len = fun_block.params.len();
+                // consider using trair write - write!{writer, "..."}
                 print!("{} ", *self.parameter(&log, 0, fun_block, res_prev));
                 io::stdout().flush().unwrap();
                 let mut user_input = String::new();
