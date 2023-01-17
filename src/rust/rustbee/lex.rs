@@ -1492,7 +1492,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
         
                         scoped_block =  scoped_block.add_dep(GenBlockTup(Rc::new(RefCell::new(inner_block))));
                     },
-                    _ => todo!("unknown block {}", type_hdr)
+                    _ => todo!("unknown block {} at {}:{}", type_hdr, all_chars.line, all_chars.line_offset)
                 }
                 
             },

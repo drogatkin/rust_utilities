@@ -509,12 +509,12 @@ impl GenBlockTup {
                     // TODO add resolving using last result ~~
                     log.debug(&format!("exec params: {:?} for {:?}", fun_block.params, val));
                     if let Some(param) = val {
-                        if param.values.len() > 0 {
+                        if param.values.len() > 0 { // array
                             for param in param.values {
-                                params.push(param); 
+                                params.push(*process_template_value(&log, &param, &fun_block, res_prev)); 
                             }
                         } else if param.val_type != VarType::Array {
-                            params.push(param.value);
+                            params.push(*process_template_value(&log, &param.value, &fun_block, res_prev));
                         }
                     } else {
                         params.push(*self.parameter(&log, i, fun_block, res_prev));
@@ -525,7 +525,12 @@ impl GenBlockTup {
                 if fun_block.dir.is_some() {
                     let work_dir_val = fun_block.dir.as_ref().unwrap().to_string();
                     if !work_dir_val.is_empty() {
-                        let work_dir = *process_template_value(&log, &work_dir_val, fun_block, res_prev);
+                        let work_dir =
+                        match fun_block.search_up(&work_dir_val) {
+                            Some(work_dir_val1) => { *process_template_value(&log, &work_dir_val1.value, &fun_block, res_prev)},
+                            None => (*process_template_value(&log, &work_dir_val, fun_block, res_prev))
+                        };
+                        //let work_dir = *process_template_value(&log, &work_dir_val, fun_block, res_prev);
                         let path =  Path::new(&work_dir);
                         if path.exists() {
                             cwd = path.canonicalize().unwrap().into_os_string().into_string().unwrap();
