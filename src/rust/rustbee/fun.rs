@@ -545,7 +545,7 @@ impl GenBlockTup {
                     let status = if cwd.is_empty() { Command::new(&exec)
                     .args(&params)
                     .status().expect(&format!("{} command with {:?} failed to start", exec, params)) } else {
-                        Command::new(&exec).current_dir(&cwd)
+                        Command::new(&exec).current_dir(&cwd).args(&params)
                         .status().expect(&format!("{} command with {:?} in {} failed to start", exec, params, cwd)) 
                     };
                     match status.code() {
