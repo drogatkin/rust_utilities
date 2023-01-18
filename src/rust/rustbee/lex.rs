@@ -377,6 +377,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::StartParam => { // reconsider as falling in commend and preserve state when the comment is over
+                        state = LexState::InParam;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -1104,6 +1109,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                         pos += 1;
                         buf[pos] = c;
                         pos += 1;
+                        state = TemplateState::InVal;
                     },
                     _ => todo!()
                 }
