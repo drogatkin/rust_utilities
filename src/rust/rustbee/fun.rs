@@ -582,11 +582,10 @@ impl GenBlockTup {
                     Some(vec_param) => { 
                         if vec_param.val_type == VarType::Array {
                             let mut collect_str = vec_param.values[0].to_owned();
-                            collect_str.push_str(&sep);
                             let mut next_el = 1;
                             while next_el < vec_param.values.len() {
-                                collect_str.push_str(&vec_param.values[next_el]);
                                 collect_str.push_str(&sep);
+                                collect_str.push_str(&vec_param.values[next_el]);
                                 next_el += 1;
                             }
                             Some(VarVal::from_string(&collect_str))
@@ -705,8 +704,20 @@ impl GenBlockTup {
             "array" => {
                 let mut res : Vec<String> = Vec::new();
                 for i in 0..fun_block.params.len() {
-                    let param = *self.parameter(&log, i, fun_block, res_prev);
-                    res.push(param);
+                    // TODO make the approach as a util method
+                    match fun_block.search_up(&fun_block.params[i]) {
+                        Some(param1) => { 
+                            if param1.val_type == VarType::Array {
+                                res.extend_from_slice(&param1.values); // consider to massage a value  *process_template_value(&log, param1.values[k], &fun_block, res_prev);
+                            } else {
+                                res.push(*self.parameter(&log, i, fun_block, res_prev));
+                            }
+                        ;},
+                        None => { let param = *self.parameter(&log, i, fun_block, res_prev);
+                            res.push(param);
+                        }
+                    }
+                   
                 }
                 return Some(VarVal::from_vec(&res));
             },
