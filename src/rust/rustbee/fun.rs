@@ -502,7 +502,7 @@ impl GenBlockTup {
                     Some(exec1) => { exec = *process_template_value(&log, &exec1.value, &fun_block, res_prev);},
                     None => ()
                 }
-                let mut params: Vec<String> = Vec::new();
+                let mut params: Vec<_> = Vec::new();
                 for i in 0..fun_block.params.len() {
                     let param = &fun_block.params[i];
                     let val = self.search_up(&param);
@@ -528,7 +528,7 @@ impl GenBlockTup {
                         let work_dir =
                         match fun_block.search_up(&work_dir_val) {
                             Some(work_dir_val1) => { *process_template_value(&log, &work_dir_val1.value, &fun_block, res_prev)},
-                            None => (*process_template_value(&log, &work_dir_val, fun_block, res_prev))
+                            None => *process_template_value(&log, &work_dir_val, fun_block, res_prev)
                         };
                         //let work_dir = *process_template_value(&log, &work_dir_val, fun_block, res_prev);
                         let path =  Path::new(&work_dir);
@@ -690,7 +690,7 @@ impl GenBlockTup {
                     },
                     VarType::RepositoryMaven => {
                         let parts = param.value.split(':');
-                        let mav_parts: Vec<&str> = parts.collect();
+                        let mav_parts: Vec<_> = parts.collect();
                         //https://repo1.maven.org/maven2/com/baomidou/mybatis-plus-boot-starter/3.5.3.1/mybatis-plus-boot-starter-3.5.3.1.jar
                         return Some(VarVal::from_string(&format!("https://repo1.maven.org/maven2/{}/{}/{}/{}-{}.jar", &mav_parts[0].replace(".", "/"), &mav_parts[1], &mav_parts[2], &mav_parts[1], &mav_parts[2])));
                     },
@@ -702,9 +702,11 @@ impl GenBlockTup {
                 log.error(&format!("assign function has to be called as exec_assign"));
             },
             "array" => {
-                let mut res : Vec<String> = Vec::new();
+                let mut res : Vec<_> = Vec::new();
                 for i in 0..fun_block.params.len() {
                     // TODO make the approach as a util method
+                    // TODO although there is a note about string interpolation, perhaps do it only for final
+                    // destinations as evaluate parameters in a function or a block
                     match fun_block.search_up(&fun_block.params[i]) {
                         Some(param1) => { 
                             if param1.val_type == VarType::Array {

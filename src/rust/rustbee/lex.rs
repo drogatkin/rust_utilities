@@ -541,7 +541,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
 
             ':' => {
                 match state {
-                    LexState::BlankOrEnd => {
+                    LexState::BlankOrEnd | LexState::Begin => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                         state = LexState::InLex;
@@ -602,6 +602,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::Begin => {
+                        state = LexState::InLex;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -624,6 +629,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::Begin => {
+                        state = LexState::InLex;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -641,6 +651,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                     },
                     LexState::StartValue => {
                         state = LexState::InValue;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
+                    LexState::Begin => {
+                        state = LexState::InLex;
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
@@ -666,6 +681,11 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
+                    LexState::Begin => {
+                        state = LexState::InLex;
+                        buffer[buf_fill] = c;
+                        buf_fill += 1;
+                    },
                     _ => todo!("state: {:?} at {}", state, reader.line)
                 }
             },
@@ -677,7 +697,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::BlankOrEnd => {
+                    LexState::BlankOrEnd | LexState::Begin => {
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                         state = LexState::InLex;
@@ -1129,7 +1149,7 @@ fn process_array_value(log: &Log, value : &str) -> Result<Vec<String>, String> {
     let mut buf = [' ';4096* 1];
     let mut state: LexState = LexState::Begin;
     let chars = value.chars();
-    let mut res : Vec<String> = Vec::new();
+    let mut res : Vec<_> = Vec::new();
     let mut blank_pos = 0;
     let mut pos = 0;
     for c in chars {
@@ -1319,7 +1339,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
             },
             Lexem::Function(name) => {
                 // name can be function + main argument
-                let (type_hdr,name,work,path) = *process_lex_header(&log, &name, &scoped_block.0.as_ref().borrow_mut().vars) ;
+                let (type_hdr,name,work,_path) = *process_lex_header(&log, &name, &scoped_block.0.as_ref().borrow_mut().vars) ;
                 let mut func = GenBlock::new(BlockType::Function);
                 //fun::GenBlockTup(Rc::new(RefCell::new(GenBlock::new(BlockType::Function))));
                 func.name = Some(type_hdr);
