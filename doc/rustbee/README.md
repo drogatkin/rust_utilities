@@ -75,5 +75,14 @@ just append content
 
 A result of a function or a block is stored in a temporary variable ~~ and can be consumed in the next operation.
 
+### String interpolation
+It allows to extend any value by processing template variables  like:
+
+       ${name}
+
+The name is a name of some variable. Since a substituted value has to be interpolated as well,
+the process is recursive. It doesn't do check for looping, and you need to verify if it happens.
+
+
 
 An example of a script for building a Java project, can be found [there](https://github.com/drogatkin/JustDSD/blob/master/bee-java.rb).
