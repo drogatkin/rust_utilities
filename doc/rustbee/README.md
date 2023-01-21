@@ -1,7 +1,7 @@
 # RustBee
 
 ## Purpose
-RustBee is a light version of 7Bee build tool written in Rust. RB has several
+RustBee is a lightweight version of 7Bee build tool written in Rust. RB has several
 advantages over 7Bee as:
 1. more concise and clear syntax of scripts
 2. footprint is under 1Mb
@@ -82,6 +82,10 @@ It allows to extend any value by processing template variables  like:
 
 The name is a name of some variable. Since a substituted value has to be interpolated as well,
 the process is recursive. It doesn't do check for looping, and you need to verify if it happens.
+
+### name or value?
+Rustbee resolves this ambiguity in the following manner. First it considers the value as a name and is looking for it. If the variable with such name wasn't found, then the value is considered as a literal value. 
+String interpolation is applied at the end of any variant. 
 
 
 

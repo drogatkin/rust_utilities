@@ -214,7 +214,7 @@ fn main() -> io::Result<()> {
                          path = path1.unwrap();
                          let path1 = Path::new(&path);
                          let cwd = path1.parent().unwrap().to_str().unwrap();
-                         lex_tree.add_var(String::from("~cwd~"), lex::VarVal::from_string(&cwd));
+                         lex_tree.add_var(String::from("~cwd~"), lex::VarVal::from_string(cwd));
                     } else {
                          log.error(&format!("Script: {} not found", file));
                          return Err(Error::from_raw_os_error(-2)/*Error::new(ErrorKind::Other, "Script not found")*/);

@@ -121,8 +121,8 @@ pub struct Reader {
 }
 
 impl VarVal {
-    pub fn from_string(str: &str) -> VarVal {
-        VarVal{val_type: VarType::Generic, value: str.to_string(), values: Vec::new()}  
+    pub fn from_string(str: impl Into<String>) -> VarVal {
+        VarVal{val_type: VarType::Generic, value: str.into(), values: Vec::new()}  
     }
 
     pub fn from_bool(boole: bool) -> VarVal {

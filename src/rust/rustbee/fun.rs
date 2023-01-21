@@ -754,7 +754,7 @@ impl GenBlockTup {
             }
         }
         match var_val2 {
-            None => parent_block.vars.insert(name, VarVal::from_string(&val)),
+            None => parent_block.vars.insert(name, VarVal::from_string(*val)),
             Some(val) => parent_block.vars.insert(name, val.clone1()),
         }
     }
