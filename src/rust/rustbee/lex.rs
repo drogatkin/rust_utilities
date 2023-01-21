@@ -14,8 +14,9 @@ const BUF_SIZE: usize = 256;
 
 const MAX_LEX_LEN: usize = 4096;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub enum VarType {
+    #[default]
     Generic,
     Property,
     Directory,
@@ -144,6 +145,12 @@ impl VarVal {
     pub fn is_true(& self) -> bool {
         self.value == "true" || self.val_type == VarType::Array && self.values.len() > 0 
         || self.val_type == VarType::Number && self.value.parse::<i32>().is_ok() && self.value.parse::<i32>().unwrap() != 0
+    }
+}
+
+impl Default for VarVal {
+    fn default() -> Self {
+        VarVal::from_bool(false)
     }
 }
 

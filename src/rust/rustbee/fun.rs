@@ -408,7 +408,7 @@ impl GenBlockTup {
                 let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 for child in children {
-                    let res = child.exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                    let res = child.exec(&log, prev_res).unwrap_or_default().is_true();
                     if res {
                         return Some(VarVal::from_bool(res));
                    }
@@ -419,7 +419,7 @@ impl GenBlockTup {
                 let naked_block = self.0.borrow();
                 let children = &naked_block.children;
                 for child in children {
-                    let res = child.exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                    let res = child.exec(&log, prev_res).unwrap_or_default().is_true();
                     if !res {
                         return Some(VarVal::from_bool(false));
                    }
@@ -432,7 +432,7 @@ impl GenBlockTup {
                 if children.len() > 1 {
                     log.error(&format!("unexpected block(s) {}", children.len()));
                 }
-                let res = children[0].exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
+                let res = children[0].exec(&log, prev_res).unwrap_or_default().is_true();
                 if !res {
                     return Some(VarVal::from_bool(true));
                }
