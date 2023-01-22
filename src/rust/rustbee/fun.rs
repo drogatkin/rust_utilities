@@ -82,7 +82,7 @@ impl GenBlock {
                 for  newval in &var.values {
                     newvec.push(newval.clone());
                 }
-                return Some(var.clone1());
+                return Some(var.clone());
             }
         }
     }
@@ -129,7 +129,7 @@ impl GenBlockTup {
                 for  newval in &var.values {
                     newvec.push(newval.clone());
                 }
-                return Some(var.clone1());
+                return Some(var.clone());
             }
         }
     }
@@ -287,7 +287,7 @@ impl GenBlockTup {
             BlockType::Scope | BlockType::Then | BlockType::Else => {
                 let mut res = match prev_res {
                     None => None,
-                    Some(var) => Some(var.clone1())
+                    Some(var) => Some(var.clone())
                 };
                 let children = &self.0.borrow().children.clone();
                 for child in children {
@@ -327,7 +327,7 @@ impl GenBlockTup {
             BlockType::For => {
                 let mut res = match prev_res {
                     None => None,
-                    Some(var) => Some(var.clone1())
+                    Some(var) => Some(var.clone())
                 };
                 let mut range = Vec::new();
                 //range.push("test".to_string());
@@ -746,16 +746,16 @@ impl GenBlockTup {
         //parent_block.vars.get(&name);
         let mut var_val2 : Option<VarVal> = None;
         if var_val.is_some() {
-            var_val2 = Some(var_val.as_ref().unwrap().clone1());
+            var_val2 = Some(var_val.as_ref().unwrap().clone());
         } else {
             let var_val3 = parent.search_up(&val);
             if var_val3.is_some() {
-                var_val2 = Some(var_val3.unwrap().clone1());
+                var_val2 = Some(var_val3.unwrap().clone());
             }
         }
         match var_val2 {
             None => parent_block.vars.insert(name, VarVal::from_string(*val)),
-            Some(val) => parent_block.vars.insert(name, val.clone1()),
+            Some(val) => parent_block.vars.insert(name, val.clone()),
         }
     }
 

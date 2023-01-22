@@ -138,19 +138,21 @@ impl VarVal {
         VarVal{val_type: VarType::Array, value: "".to_string(), values: vec.clone()}  
     }
 
-    pub fn clone1(& self) -> VarVal {
-        VarVal{val_type: self.val_type.clone(), value: self.value.clone(), values: self.values.clone()}
-    }
-
     pub fn is_true(& self) -> bool {
         self.value == "true" || self.val_type == VarType::Array && self.values.len() > 0 
-        || self.val_type == VarType::Number && self.value.parse::<i32>().is_ok() && self.value.parse::<i32>().unwrap() != 0
+        || self.val_type == VarType::Number && self.value.parse::<i32>().unwrap_or_default() != 0
     }
 }
 
 impl Default for VarVal {
     fn default() -> Self {
         VarVal::from_bool(false)
+    }
+}
+
+impl Clone for VarVal {
+    fn clone(&self) -> Self {
+        VarVal{val_type: self.val_type.clone(), value: self.value.clone(), values: self.values.clone()}
     }
 }
 
@@ -1062,7 +1064,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                         let res = if var == "~~" {
                             match res_prev {
                                 None => None,
-                                Some(prev) => Some(prev.clone1())
+                                Some(prev) => Some(prev.clone())
                             }
                         } else {vars.search_up( &var)};
                         match res {
