@@ -134,10 +134,6 @@ impl GenBlockTup {
         }
     }
 
-    pub fn clone(&self) -> GenBlockTup {
-        GenBlockTup(Rc::clone(&self.0))
-    }
-
     pub fn parent(& self) -> Option<GenBlockTup> {
         let bl = self.0.borrow();
         if let Some(parent) = &bl.parent {
