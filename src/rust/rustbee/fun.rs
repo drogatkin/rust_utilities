@@ -719,6 +719,27 @@ impl GenBlockTup {
                 }
                 return Some(VarVal::from_vec(&res));
             },
+            "file_filter" => { // remove from an array parameter all matching parameters 1..n
+                let param = self.search_up(&fun_block.params[0]);
+                if param.is_some() && param.as_ref().unwrap().val_type == VarType::Array {
+                    let filter_vals: _ = fun_block.params[1..].iter().map(|filter| process_template_value(&log, filter, &fun_block, res_prev)).collect::<Vec<_>>();
+                    let files = param.unwrap().values;
+                    let vec = files.into_iter().filter(|file| {
+                        let p = Path::new(file);
+                        if !p.exists() {return false} ;
+                        let name = p.file_name().unwrap().to_str().unwrap();
+                        for filter in &filter_vals {
+                            if matches(&name, &filter) {
+                                return false
+                            }
+                        }
+                        return true
+                    }).collect();
+                    return Some(VarVal::from_vec(&vec));
+                } else {
+                    log.error(&format!{"Variable {} not found or not an array", fun_block.params[0]});
+                }
+            },
             "panic" => {
                 panic!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
@@ -942,8 +963,9 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
                         
                         let t1 = last_modified(&file1_path);
                         let t2 = last_modified(&file2);
-                       // println!{"comparing: {:?}:{:?}<>{:?}:{:?}", &file1_path, &t1, &file2, &t2};
+                        //println!{"comparing: {:?}:{:?}<>{:?}:{:?}", &file1_path, &t1, &file2, &t2};
                         if t2.is_none() || t1.unwrap() > t2.unwrap() {
+                            //println!{"none or newer: {:?}>{:?}", t1.unwrap() ,t2.unwrap_or(std::time::UNIX_EPOCH) };
                             result.push(file1_path.to_string());
                         }
                     },
@@ -1023,5 +1045,31 @@ pub fn last_modified(file: &str) -> Option<SystemTime> {
         Some(time)
     } else {
         None
+    }
+}
+
+fn matches(name: &str, filter: &str) -> bool {
+    let star_pos = filter.find('*');
+    match star_pos {
+        None=> {
+            return name == filter
+        },
+        Some (pos)=> {
+            let len = name.len();
+            let lenm1 = len - 1;
+            match pos {
+                0 => {
+                    return name.ends_with(&filter[1..])
+                },
+                lenm1 => {
+                    return name.starts_with(&filter[0..lenm1])
+                },
+               _  => {
+                    let start = &filter[0..pos];
+                    let end = &filter[pos+1..];
+                    return name.starts_with(&start) && name.ends_with(&end)
+               }
+            }
+        } 
     }
 }

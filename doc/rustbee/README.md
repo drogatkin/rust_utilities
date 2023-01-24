@@ -10,12 +10,12 @@ advantages over 7Bee as:
 
 ## Syntax highlights
 RB build script defines at least one build target. Several build
-targets can be dependent. A build variable can be defined in a form:
+targets can be dependent. A script variable can be defined in a form:
 
     name=value
 
 Name and value can be anything, but if a name includes spaces or '=' then
-name has to be quoted. If the name should include quot, then use \ for escaping it.
+name has to be quoted. If the name should include quote, then use \ for escaping it.
 The same rule is applied for a value. Although any name is allowed, all names starting with
 *~* and ending with *~* are reserved.
 
@@ -46,8 +46,8 @@ A dependency can be:
 - **target**, for dependency on the target
 - **true**, for unconditional execution of the target
 
-The body of a target contains a sequence of blocks and functions. 
-Currently *if* and *for* block operators are supported.
+The body of a target contains a sequence of operators and functions. 
+Currently *if* and *for*  operators are supported.
 
 A function can be the following:
 - **and**, considers parameters as boolean values and returns true if all parameters are true
@@ -60,8 +60,9 @@ A function can be the following:
 - **exec**, executes a process on the underline OS, a name of process separated by a blank from *exec*, 
 parameters are parameters of the process
 - **filename**, returns a filename of a parameter, no extension
-- **newerthan**, compares timestamp of files specified with a pattern path/*ext with timestamp of files specified using path/*ext and
-returns an array of file patch which have later date
+- **file_filter**, shrink an array specified my first parameters by filter values specified by extra parameters
+- **newerthan**, compares timestamp of files specified with a pattern path/.ext with timestamp of files specified using path/.ext and
+returns an array of files which have later date
 - **neq**,  compares two parameters and returns true if they are not equal
 - **now**, shows the current time and date in ISO 8601
 - **or**, considers parameters as boolean values and returns true of first true parameter,

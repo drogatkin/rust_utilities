@@ -105,7 +105,7 @@ enum HdrState {
     InWorkQt,
 }
  
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct VarVal {
     pub val_type: VarType,
     pub value: String, // TODO make it enum based on type
@@ -147,12 +147,6 @@ impl VarVal {
 impl Default for VarVal {
     fn default() -> Self {
         VarVal::from_bool(false)
-    }
-}
-
-impl Clone for VarVal {
-    fn clone(&self) -> Self {
-        VarVal{val_type: self.val_type.clone(), value: self.value.clone(), values: self.values.clone()}
     }
 }
 
@@ -1005,7 +999,7 @@ fn process_lex_header(log: &Log, value : &str, _vars: &HashMap<String, VarVal>) 
 
 pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
     // String interpolation
-    let mut buf = [' ';4096* 1];
+    let mut buf = [' ';4096* 10];
     let mut buf_var = [' ';128]; // buf for var name
     let mut name_pos = 0;
     let chars = value.chars();
@@ -1091,6 +1085,9 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
                                     },
                                     VarType::Array => {
                                         let chars = vec_to_str(&var.values);
+                                        if chars.len() > buf.len() - pos {
+                                            log.error(&format!{"Length of array elemement exceed {}", buf.len()});
+                                        }
                                         for vc in chars.chars() {
                                             buf[pos] = vc;
                                             pos += 1;
