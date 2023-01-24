@@ -86,6 +86,7 @@ impl GenBlock {
             }
         }
     }
+
 }
 
 impl GenBlockTup {
@@ -131,6 +132,14 @@ impl GenBlockTup {
                 }
                 return Some(var.clone());
             }
+        }
+    }
+
+    pub fn prev_or_search_up(&self, name: &String, prev: &Option<VarVal>) -> Option<VarVal> {
+        if "~~" == name {
+            prev.clone()
+        } else {
+            self.search_up(name)
         }
     }
 
@@ -501,7 +510,7 @@ impl GenBlockTup {
                 let mut params: Vec<_> = Vec::new();
                 for i in 0..fun_block.params.len() {
                     let param = &fun_block.params[i];
-                    let val = self.search_up(&param);
+                    let val = self.prev_or_search_up(&param, res_prev);
                     // TODO add resolving using last result ~~
                     log.debug(&format!("exec params: {:?} for {:?}", fun_block.params, val));
                     if let Some(param) = val {
@@ -610,9 +619,9 @@ impl GenBlockTup {
                     Some(slash_pos) => {
                         match dot_pos {
                             Some(dot_pos) => {
-                                return Some(VarVal::from_string(&param[slash_pos..dot_pos]));
+                                return Some(VarVal::from_string(&param[slash_pos+1..dot_pos]));
                             },
-                            None => return Some(VarVal::from_string(&param[slash_pos..]))
+                            None => return Some(VarVal::from_string(&param[slash_pos+1..]))
                         }
                     }
                 }
@@ -720,13 +729,7 @@ impl GenBlockTup {
                 return Some(VarVal::from_vec(&res));
             },
             "file_filter" => { // remove from an array parameter all matching parameters 1..n
-                let param = if &fun_block.params[0] == "~~" {
-                    res_prev.clone()
-                } else {
-                    let param = self.search_up(&fun_block.params[0]);
-                    param
-                };
-                //let param = self.search_up(&fun_block.params[0]);
+                let param = self.prev_or_search_up(&fun_block.params[0], res_prev);
                 if param.is_some() && param.as_ref().unwrap().val_type == VarType::Array {
                     let filter_vals: _ = fun_block.params[1..].iter().map(|filter| process_template_value(&log, filter, &fun_block, res_prev)).collect::<Vec<_>>();
                     let files = param.unwrap().values;
