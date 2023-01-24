@@ -26,8 +26,7 @@ target compile:. {
        or {
              {
                 newerthan(${source_directory}/.java,${build_directory}/.class)
-                assign(main src,~~)
-                file_filter(main src,package-info.*)
+                file_filter(~~,package-info.*)
              }
        }
    }
@@ -38,7 +37,7 @@ target compile:. {
        file_filter(main src,package-info.*)
        assign(main src,~~)
        
-       display(Compiling Java ${main src})
+       display(Compiling Java src....)
        exec javac (
          -d,
          ${build_directory},

@@ -720,7 +720,13 @@ impl GenBlockTup {
                 return Some(VarVal::from_vec(&res));
             },
             "file_filter" => { // remove from an array parameter all matching parameters 1..n
-                let param = self.search_up(&fun_block.params[0]);
+                let param = if &fun_block.params[0] == "~~" {
+                    res_prev.clone()
+                } else {
+                    let param = self.search_up(&fun_block.params[0]);
+                    param
+                };
+                //let param = self.search_up(&fun_block.params[0]);
                 if param.is_some() && param.as_ref().unwrap().val_type == VarType::Array {
                     let filter_vals: _ = fun_block.params[1..].iter().map(|filter| process_template_value(&log, filter, &fun_block, res_prev)).collect::<Vec<_>>();
                     let files = param.unwrap().values;
