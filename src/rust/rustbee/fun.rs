@@ -760,6 +760,26 @@ impl GenBlockTup {
             "panic" => {
                 panic!("{}", self.parameter(&log, 0, fun_block, res_prev));
             },
+            "element" => { // the function allow to extract or set an element of an array
+                match fun_block.search_up(&fun_block.params[0]) {
+                    Some(array) => { 
+                        if array.val_type == VarType::Array {
+                            let index_param = match self.prev_or_search_up(&fun_block.params[1], res_prev) {
+                                None => fun_block.params[1].to_owned(),
+                                Some(val) => val.value.clone()
+                            };
+                            let index: usize = index_param.parse().unwrap_or_default();
+                            if fun_block.params.len() == 3 { // set
+                            } else if fun_block.params.len() == 2 { // get
+                                return Some(VarVal::from_string(&array.values[index]))
+                            }
+                        } else {
+                            log.error(&format!{"Specified argument isn't an array"});
+                        }
+                    },
+                    None => log.error(&format!{"Specified argument wasn't found"})
+                }
+            },
             _ => todo!("unimplemented func: {:?}", fun_block.name)
         }
         None
