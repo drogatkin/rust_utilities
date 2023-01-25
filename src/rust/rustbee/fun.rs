@@ -87,6 +87,14 @@ impl GenBlock {
         }
     }
 
+    pub fn prev_or_search_up(&self, name: &String, prev: &Option<VarVal>) -> Option<VarVal> {
+        if "~~" == name {
+            prev.clone()
+        } else {
+            self.search_up(name)
+        }
+    }
+
 }
 
 impl GenBlockTup {
@@ -758,42 +766,27 @@ impl GenBlockTup {
     }
 
     pub fn exec_assign(&self, log: &Log, fun_block: &GenBlock, parent_block: &mut GenBlock, res_prev: &Option<VarVal>) -> Option<VarVal> {
-        let name = *self.parameter(&log, 0, fun_block, res_prev); 
+        let name = fun_block.params[0].to_owned();
+       // let parent = parent_block.parent.as_ref().unwrap();
+        let val = parent_block.prev_or_search_up(&fun_block.params[1], res_prev);
+        log.debug(&format!("assign arguments resolved as {} {:?}/{}", name, val, &fun_block.params[1]));
 
-        let val = self.parameter2(&log, &fun_block.params[1], parent_block, res_prev);
-        log.debug(&format!("arguments resolved as {} {}", name, val));
-        let parent = parent_block.parent.as_ref().unwrap();
-        let  var_val: &Option<VarVal> = if *val == "~~" {
-            res_prev
-        } else {
-            &None
-        };
-        
-        //parent_block.vars.get(&name);
-        let mut var_val2 : Option<VarVal> = None;
-        if var_val.is_some() {
-            var_val2 = Some(var_val.as_ref().unwrap().clone());
-        } else {
-            let var_val3 = parent.search_up(&val);
-            if var_val3.is_some() {
-                var_val2 = Some(var_val3.unwrap().clone());
-            }
-        }
-        match var_val2 {
-            None => parent_block.vars.insert(name, VarVal::from_string(*val)),
-            Some(val) => parent_block.vars.insert(name, val.clone()),
+        match val {
+            None => parent_block.vars.insert(name, VarVal::from_string(*process_template_value(&log, &fun_block.params[1], &parent_block, res_prev))),
+            Some(val) => parent_block.vars.insert(name, val.clone())
         }
     }
 
     pub fn parameter(&self, log: &Log, i: usize, fun_block: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
         log.debug(&format!("looking for {:?} of {:?}", &fun_block.params[i], &fun_block.block_type));  
-        process_template_value(&log, &fun_block.params[i], &fun_block, res_prev)
+        let param = fun_block.prev_or_search_up(&fun_block.params[i], res_prev);
+        match param {
+            None => process_template_value(&log, &fun_block.params[i], &fun_block, res_prev),
+            Some(val) => process_template_value(&log, &val.value, &fun_block, res_prev)
+        }
+        //process_template_value(&log, &fun_block.params[i], &fun_block, res_prev)
     }
 
-    pub fn parameter2(&self, log: &Log, param: &String, owner_block: &GenBlock, res_prev: &Option<VarVal>) -> Box<String> {
-        log.debug(&format!("looking(2) for {:?} of {:?}", param, &owner_block.block_type));  
-        process_template_value(&log, param, &owner_block, res_prev)
-    }
 }
 
 pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Result<()> {
@@ -1065,13 +1058,12 @@ fn matches(name: &str, filter: &str) -> bool {
         },
         Some (pos)=> {
             let len = name.len();
-            let lenm1 = len - 1;
             match pos {
                 0 => {
                     return name.ends_with(&filter[1..])
                 },
-                lenm1 => {
-                    return name.starts_with(&filter[0..lenm1])
+                _ if pos == len - 1 => {
+                    return name.starts_with(&filter[0..len-1])
                 },
                _  => {
                     let start = &filter[0..pos];
