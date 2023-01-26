@@ -762,7 +762,7 @@ impl GenBlockTup {
             },
             "element" => { // the function allow to extract or set an element of an array
                 match fun_block.search_up(&fun_block.params[0]) {
-                    Some(array) => { 
+                    Some(mut array) => { 
                         if array.val_type == VarType::Array {
                             let index_param = match self.prev_or_search_up(&fun_block.params[1], res_prev) {
                                 None => fun_block.params[1].to_owned(),
@@ -770,6 +770,7 @@ impl GenBlockTup {
                             };
                             let index: usize = index_param.parse().unwrap_or_default();
                             if fun_block.params.len() == 3 { // set
+                                array.values[index] = fun_block.params[2].to_owned();
                             } else if fun_block.params.len() == 2 { // get
                                 return Some(VarVal::from_string(&array.values[index]))
                             }

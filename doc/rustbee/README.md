@@ -56,6 +56,7 @@ A function can be the following:
 - **ask**, prompts a console using first parameter, and then read a user input, second parameter is used for the default answer, when a user press the enter
 - **assign**, first parameter is a *name* of variable, the second is a value
 - **display** - display a message specified by a parameter
+- **element**, set/get an ellement of an array, first parameter specifies an array, second an index, and optional 3rd, when a value has to be set
 - **eq**, compares two parameters and returns true if they are equal
 - **exec**, executes a process on the underline OS, a name of process separated by a blank from *exec*, 
 parameters are parameters of the process
