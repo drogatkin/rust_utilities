@@ -1083,8 +1083,8 @@ fn matches(name: &str, filter: &str) -> bool {
                 0 => {
                     return name.ends_with(&filter[1..])
                 },
-                _ if pos == len - 1 => {
-                    return name.starts_with(&filter[0..len-1])
+                last if last == len - 1 => {
+                    return name.starts_with(&filter[0..last])
                 },
                _  => {
                     let start = &filter[0..pos];

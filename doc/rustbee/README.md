@@ -25,6 +25,7 @@ The same rule is applied for a value. Although any name is allowed, all names st
 - An array of a command line arguments is \~args\~
 - A string representing the current OS is \~os\~
 - A current working directory \~cwd\~
+- An index of the current loop iteration \~index\~
 
 A target is defined as :
     
