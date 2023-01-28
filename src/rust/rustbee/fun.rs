@@ -775,10 +775,10 @@ impl GenBlockTup {
                                 return Some(VarVal::from_string(&array.values[index]))
                             }
                         } else {
-                            log.error(&format!{"Specified argument isn't an array"});
+                            log.error(&format!{"Specified argument {} isn't an array",  &fun_block.params[0]});
                         }
                     },
-                    None => log.error(&format!{"Specified argument wasn't found"})
+                    None => log.error(&format!{"Specified argument {} wasn't found", &fun_block.params[0]})
                 }
             },
             _ => todo!("unimplemented func: {:?}", fun_block.name)
