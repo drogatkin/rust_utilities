@@ -372,7 +372,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         buffer[buf_fill] = c;
                         buf_fill += 1;
                     },
-                    LexState::BlankInValue => {
+                    LexState::BlankInValue | LexState::InValue => { // separate in value since # has to be collected toward to comment
                         state = LexState::Comment;
                         return (Lexem::Value(buffer[0..last_nb].iter().collect()), state);
                     },

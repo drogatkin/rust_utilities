@@ -720,20 +720,24 @@ impl GenBlockTup {
                     // TODO make the approach as a util method
                     // TODO although there is a note about string interpolation, perhaps do it only for final
                     // destinations as evaluate parameters in a function or a block
-                    match fun_block.search_up(&fun_block.params[i]) {
+                    match fun_block.prev_or_search_up(&fun_block.params[i], res_prev) {
                         Some(param1) => { 
                             if param1.val_type == VarType::Array {
                                 res.extend_from_slice(&param1.values); // consider to massage a value  *process_template_value(&log, param1.values[k], &fun_block, res_prev);
                             } else {
                                 res.push(*self.parameter(&log, i, fun_block, res_prev));
                             }
-                        ;},
+                        },
                         None => { let param = *self.parameter(&log, i, fun_block, res_prev);
-                            res.push(param);
+                            if !param.is_empty() {
+                                res.push(param);
+                            } else {
+                                log.error(&format!{"empty parameter {} is ignored", i});
+                            }
                         }
                     }
-                   
                 }
+                //println!{"vec -> {:?}", &res};
                 return Some(VarVal::from_vec(&res));
             },
             "file_filter" => { // remove from an array parameter all matching parameters 1..n
@@ -997,6 +1001,7 @@ fn find_newer(dir1: &str, ext1: &str, dir2 : &Option<String>, ext2 : &Option<Str
             }
         }
     }
+   // println!{"newer: {:?}", result};
     result
 }
 
