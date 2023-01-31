@@ -511,7 +511,7 @@ impl GenBlockTup {
             "exec" => {
                 let mut exec : String  = fun_block.flex.as_ref().unwrap().to_string();
                 // look for var first
-                match fun_block.search_up(&exec) {
+                match fun_block.search_up(&exec) { // no exec name from prev oper
                     Some(exec1) => { exec = *process_template_value(&log, &exec1.value, &fun_block, res_prev);},
                     None => ()
                 }
@@ -692,7 +692,7 @@ impl GenBlockTup {
 
             },
             "as_url" => {
-               let param = self.search_up(&fun_block.params[0]);
+               let param = self.prev_or_search_up(&fun_block.params[0], res_prev);
                log.debug(&format!{"param: {:?}", param});
                if let Some(param) = param {
                    match param.val_type {
