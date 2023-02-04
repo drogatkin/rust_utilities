@@ -14,9 +14,9 @@ targets can be dependent. A script variable can be defined in a form:
 
     name=value
 
-Name and value can be anything, but if a name includes spaces or '=' then
+Name and value can be anything, but if a name includes spaces or symbols like `=, ;, {,( ` then
 name has to be quoted. If the name should include quote, then use \ for escaping it.
-The same rule is applied for a value. If one of the following characters `:, ;, {, [` is included to 
+The same rule is applied for a value. If one of the following characters `:, ;, {, [` is included in 
 a value  then the value has to be quoted, for example:
 
     json lib="org.glassfish:javax.json:1.1.4":rep-maven
@@ -31,7 +31,7 @@ Although any name is allowed, all names starting with
 - A current working directory \~cwd\~
 - An index of the current loop iteration \~index\~
 
-You can break a line adding \ the end.
+You can break a line adding \ at the end.
 
 A target is defined as :
     
@@ -54,14 +54,29 @@ A dependency can be:
 - **true**, for unconditional execution of the target
 
 The body of a target contains a sequence of operators and functions. 
-Currently *if* and *for*  operators are supported.
+Currently *if* and *for*  operators are supported. More details on syntax of the constructions:
+
+### if
+
+     if {
+       a condition function or a condition block
+       then {
+       }
+      [ else {
+      } ]
+
+### for
+
+    for var_name:array[:array elements separator if array defined as a scalar value] {
+      # loop actions
+    }
 
 A function can be the following:
 - **and**, considers parameters as boolean values and returns true if all parameters are true
 - **array**, converts a list of parameters in an array, which can be consumed as a function result
 - **as_url**, returns a download URL of an artifact specified by a parameter
 - **ask**, prompts a console using first parameter, and then read a user input, second parameter is used for the default answer, when a user press the enter
-- **assign**, first parameter is a *name* of variable, the second is a value, the function returns previous value by the same name, if any
+- **assign**, first parameter is a *name* of variable, the second is a value, the function returns a previous value under the name, if any
 - **display** - display a message specified by a parameter
 - **element**, set/get an ellement of an array, first parameter specifies an array, second an index, and optional 3rd, when a value has to be set
 - **eq**, compares two parameters and returns true if they are equal
@@ -76,6 +91,7 @@ returns an array of files which have later date
 - **or**, considers parameters as boolean values and returns true of first true parameter,
 otherwise returns false
 - *panic*, a parameter specifies a panic message
+- **read**, reads a file content specified by a parameter
 - **scalar**, if a parameter is an array, then concatenates all elements using a separator specified by a second parameter 
 - **timestamp**, returns a timestamp of a file specified by a parameter
 - **write**, writes to a file specified by first parameter, content of the rest parameters
