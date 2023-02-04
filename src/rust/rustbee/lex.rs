@@ -230,8 +230,9 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
                         state = LexState::IgnoredBlankToEnd;
                     },
                     LexState::InQtValue => {
-                        state = LexState::Begin;
-                        return (Lexem::Value(buffer[0..buf_fill].iter().collect()), state);
+                        state = LexState::InValue;
+                        last_nb = buf_fill;
+                        //return (Lexem::Value(buffer[0..buf_fill].iter().collect()), state);
                     },
                     LexState::Escape => {
                         state = LexState::InQtLex ;
@@ -1539,7 +1540,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
             },
             Lexem::Type(var_type) => {
                 let mut bl = scoped_block.0.as_ref().borrow_mut();
-               // println!("name {} in block {:?}", &current_name, bl.block_type);
+                //log.debug(&format!("type {} in block {:?}", &current_name, bl.block_type));
                 match bl.vars.get(&current_name.to_string()) {
                     Some(var) => { 
                         match var_type.as_str() {
@@ -1564,7 +1565,7 @@ pub fn process(log: &Log, file: & str, block: GenBlockTup) -> io::Result<()> {
                                   let c_b = VarVal{val_type:VarType::RepositoryMaven, value:var.value.clone(), values: Vec::new()};
                                   bl.vars.insert(current_name.to_string(), c_b);
                               },
-                            _ => ()
+                            _ => log.error(&format!("Unknown type {} ignored", &var_type))
                         }
                         
                     },
