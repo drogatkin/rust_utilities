@@ -16,7 +16,11 @@ targets can be dependent. A script variable can be defined in a form:
 
 Name and value can be anything, but if a name includes spaces or '=' then
 name has to be quoted. If the name should include quote, then use \ for escaping it.
-The same rule is applied for a value. Although any name is allowed, all names starting with
+The same rule is applied for a value. If one of the following characters `:, ;, {, [` is included to 
+a value  then the value has to be quoted, for example:
+
+    json lib="org.glassfish:javax.json:1.1.4":rep-maven
+Although any name is allowed, all names starting with
 *~* and ending with *~* are reserved.
 
 - A name as ~~ is reserved for a result previous operation.
@@ -26,6 +30,8 @@ The same rule is applied for a value. Although any name is allowed, all names st
 - A string representing the current OS is \~os\~
 - A current working directory \~cwd\~
 - An index of the current loop iteration \~index\~
+
+You can break a line adding \ the end.
 
 A target is defined as :
     
@@ -55,7 +61,7 @@ A function can be the following:
 - **array**, converts a list of parameters in an array, which can be consumed as a function result
 - **as_url**, returns a download URL of an artifact specified by a parameter
 - **ask**, prompts a console using first parameter, and then read a user input, second parameter is used for the default answer, when a user press the enter
-- **assign**, first parameter is a *name* of variable, the second is a value
+- **assign**, first parameter is a *name* of variable, the second is a value, the function returns previous value by the same name, if any
 - **display** - display a message specified by a parameter
 - **element**, set/get an ellement of an array, first parameter specifies an array, second an index, and optional 3rd, when a value has to be set
 - **eq**, compares two parameters and returns true if they are equal
@@ -88,8 +94,8 @@ the process is recursive. It doesn't do check for looping, and you need to verif
 
 ### name or value?
 Rustbee resolves this ambiguity in the following manner. First it considers the value as a name and is looking for it. If the variable with such name wasn't found, then the value is considered as a literal value. 
-String interpolation is applied at the end of any variant. 
+A string interpolation is applied at the end of any variant. 
 
-
+## Examples
 
 An example of a script for building a Java project, can be found [there](https://github.com/drogatkin/JustDSD/blob/master/bee-java.rb).
