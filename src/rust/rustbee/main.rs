@@ -296,7 +296,7 @@ fn main() -> io::Result<()> {
      
      match sys_time.elapsed() {
           Ok(elapsed) => {
-               log.log(&format!("Finished in {} sec(s)", elapsed.as_secs()));
+               log.log(&format!("Finished in {}.{:<03} sec(s)", elapsed.as_secs(), elapsed.subsec_millis()));
           },
           _ =>  ()
      }
