@@ -60,7 +60,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     }
                } else {
                     options.push(CmdOption::SearchUp("_".to_string()));
-                    break;
+                    break
                }
           } else if arg.starts_with("-version") {
             options.push(CmdOption::Version);
@@ -90,12 +90,12 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                     if args[arg_n].starts_with("-") {
                          log.error(&"No property file specified");
                          arg_n -= 1;
-                         continue;
+                         continue
                     }
                     options.push(CmdOption::PropertyFile(args[arg_n].to_string()));
                } else {
                     log.error(&"Property file isn't specified".to_string());
-                    break;
+                    break
                }
           } else if arg.starts_with("-q") {
                options.push(CmdOption::Quiet);
@@ -106,7 +106,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
                if arg_n < len {
                     run_args.extend_from_slice( &args[arg_n..]);
                     
-                    break;
+                    break
                }
           } else if arg.starts_with("-")  {
                log.error(&format!("Not supported option: {}", &arg));
@@ -140,7 +140,7 @@ fn find_script(dir: &Path, name: &str) -> Option<String> {
                                if let Some(file_path) = path1.to_str() {
                                     if is_bee_scrpt(&file_path) {
                                         env::set_var("PWD", curr_dir.to_str().unwrap());
-                                         return Some(path.to_str().unwrap().to_string());
+                                         return Some(path.to_str().unwrap().to_string())
                                     }
                                }
                           }
@@ -153,7 +153,7 @@ fn find_script(dir: &Path, name: &str) -> Option<String> {
                //println!{"-> {:?}", script_path};
                if script_path.exists() {
                     env::set_var("PWD", curr_dir.to_str().unwrap());
-                    return Some(script_path.to_str().unwrap().to_string());
+                    return Some(script_path.to_str().unwrap().to_string())
                }
           }        
           if let Some(dir1) = curr_dir.parent() {
@@ -161,7 +161,7 @@ fn find_script(dir: &Path, name: &str) -> Option<String> {
                //println!{"looking in parent {:?}", curr_dir};
           } else {
                //println!{"no parent for {:?}", curr_dir};
-               break;
+               break
           }
      }
      None
@@ -217,7 +217,7 @@ fn main() -> io::Result<()> {
                          lex_tree.add_var(String::from("~cwd~"), lex::VarVal::from_string(cwd));
                     } else {
                          log.error(&format!("Script: {} not found", file));
-                         return Err(Error::from_raw_os_error(-2)/*Error::new(ErrorKind::Other, "Script not found")*/);
+                         return Err(Error::from_raw_os_error(-2)/*Error::new(ErrorKind::Other, "Script not found")*/)
                     }
                },
                CmdOption::ForceRebuild => {
@@ -249,7 +249,7 @@ fn main() -> io::Result<()> {
           }
      }
      if !log.quiet {
-          log.message(&format!("RustBee (\x1b[0;36mrb\x1b[0m) v {} (c) Copyright {} D. Rogatkin", ver::version().0, 2023));
+          log.message(&format!("RustBee (\x1b[0;36mrb\x1b[0m) v {} © {} D. Rogatkin", ver::version().0, 2023));
      }
      
      if path == "_" {
@@ -270,12 +270,12 @@ fn main() -> io::Result<()> {
           }
           if path == "_" {
                //println!("No script file not found in ./");
-             return Err(Error::new(ErrorKind::Other,"No script file found in ./"));
+             return Err(Error::new(ErrorKind::Other,"No script file found in ./"))
            }
      }
      if !Path::new(&path).exists() {
           //println!("File {} not found", path);
-          return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)));
+          return Err(Error::new(ErrorKind::Other, format!("File {} not found", path)))
      }
      
      let sys_time = SystemTime::now();

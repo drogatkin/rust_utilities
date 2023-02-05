@@ -1005,7 +1005,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
     (Lexem::Variable(buffer[0..buf_fill].iter().collect()), state)
 }
 
-fn process_lex_header(log: &Log, value : &str, _vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
+fn process_lex_header(_log: &Log, value : &str, _vars: &HashMap<String, VarVal>) -> Box<(String, String, String, String)> {
     let mut buf = [' ';4096* 12];
 
     let chars = value.chars();
@@ -1336,7 +1336,7 @@ pub fn process_template_value(log: &Log, value : &str, vars: &GenBlock, res_prev
     Box::new(expanded_val)
 }
 
-fn process_array_value(log: &Log, value : &str) -> Result<Vec<String>, String> {
+fn process_array_value(_log: &Log, value : &str) -> Result<Vec<String>, String> {
     let mut buf = [' ';4096* 1];
     let mut state: LexState = LexState::Begin;
     let chars = value.chars();
