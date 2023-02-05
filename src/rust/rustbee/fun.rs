@@ -66,24 +66,18 @@ impl GenBlock {
             parent : None
         }
     }
+
+     // TODO consider return value as &
     pub fn search_up(&self, name: &String) -> Option<VarVal> {
         let var = self.vars.get(name);
         match var {
             None => {
                 match &self.parent {
-                    None => return None,
-                    Some(parent) => {
-                        return parent.search_up(name);
-                    }
+                    None => None,
+                    Some(parent) => parent.search_up(name)
                 }
             },
-            Some(var) => {
-                let mut newvec = Vec::new(); // perhaps overhead, find a better solution
-                for  newval in &var.values {
-                    newvec.push(newval.clone());
-                }
-                return Some(var.clone());
-            }
+            Some(var) =>  Some(var.clone())
         }
     }
 
@@ -127,19 +121,11 @@ impl GenBlockTup {
         match var {
             None => {
                 match &current_bl.parent {
-                    None => return None,
-                    Some(parent) => {
-                        return parent.search_up(name);
-                    }
+                    None => None,
+                    Some(parent) => parent.search_up(name)
                 }
             },
-            Some(var) => {
-                let mut newvec = Vec::new(); // perhaps overhead, find a better solution
-                for  newval in &var.values {
-                    newvec.push(newval.clone());
-                }
-                return Some(var.clone());
-            }
+            Some(var) => Some(var.clone())
         }
     }
 
@@ -178,7 +164,7 @@ impl GenBlockTup {
                             match target {
                                 Some(target) => {
                                     //let target_bor = target.0.borrow_mut();
-                                    return exec_target(&log, & target);
+                                    return exec_target(&log, & target)
                                 },
                                 _ => ()
                             }
@@ -188,7 +174,7 @@ impl GenBlockTup {
                             let p1 = process_template_value(&log, &dep_block.params[0], &dep, prev_res);
                             let p2 = process_template_value(&log, &dep_block.params[1], &dep, prev_res);
                             log.debug(&format!("anynewer parameters: {}, {}", p1, p2));
-                            return exec_anynewer(self, &p1, &p2);
+                            return exec_anynewer(self, &p1, &p2)
                         },
                         _ => todo!("function: {:?}", dep_block.name)
                     } 
@@ -243,10 +229,10 @@ impl GenBlockTup {
                     for child in &dep_block.children {
                         let res = child.exec(&log, prev_res).unwrap_or(VarVal::from_bool(false)).is_true();
                         if res {
-                            return true;
+                            return true
                        }
                     }
-                    return false;
+                    return false
                 },
                 _ => todo!("the operation {:?} isn't supported yet", dep_block.block_type)
             }
