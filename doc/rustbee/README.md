@@ -14,9 +14,9 @@ targets can be dependent. A script variable can be defined in a form:
 
     name=value
 
-Name and value can be anything, but if a name includes spaces or symbols like `=, ;, {,( ` then
-name has to be quoted. If the name should include quote, then use \ for escaping it.
-The same rule is applied for a value. If one of the following characters `:, ;, {, [` is included in 
+Name and value can be anything, but if a name includes spaces or symbols like `=, ;, {,( ` then the
+name has to be quoted. If a name should include a quote, then use \ for escaping it.
+The same rule is applied for a value. If one of the following characters `:, ;, [` is included in 
 a value  then the value has to be quoted, for example:
 
     json lib="org.glassfish:javax.json:1.1.4":rep-maven
@@ -64,6 +64,7 @@ Currently *if* and *for*  operators are supported. More details on syntax of the
        }
       [ else {
       } ]
+     }
 
 ### for
 
@@ -90,7 +91,7 @@ returns an array of files which have later date
 - **now**, shows the current time and date in ISO 8601
 - **or**, considers parameters as boolean values and returns true of first true parameter,
 otherwise returns false
-- *panic*, a parameter specifies a panic message
+- *panic*, a parameter specifies a panic message, and stops the script execution
 - **read**, reads a file content specified by a parameter
 - **scalar**, if a parameter is an array, then concatenates all elements using a separator specified by a second parameter 
 - **timestamp**, returns a timestamp of a file specified by a parameter
