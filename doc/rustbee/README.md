@@ -33,6 +33,12 @@ Although any name is allowed, all names starting with
 
 You can break a line adding \ at the end.
 
+A function call looks like:
+
+    function_name [name](parameter1,....)
+
+If a function parameter includes one of the following symbols `,, ;, )` then it has to be escaped as described above.
+
 A target is defined as :
     
      target name:[work dir]:[description] {
