@@ -573,25 +573,11 @@ impl GenBlockTup {
                 let sep = if fun_block.params.len() > 1 {
                     *self.parameter(&log, 1, fun_block, res_prev)
                 } else {" ".to_string()};
-                let vec_param = match fun_block.search_up(&fun_block.params[0]) {
-                    Some(vec_param) => { 
-                        if vec_param.val_type == VarType::Array {
-                            let mut collect_str = vec_param.values[0].to_owned();
-                            let mut next_el = 1;
-                            while next_el < vec_param.values.len() {
-                                collect_str.push_str(&sep);
-                                collect_str.push_str(&vec_param.values[next_el]);
-                                next_el += 1;
-                            }
-                            Some(VarVal::from_string(&collect_str))
-                        } else {
-                            Some(VarVal::from_string(&vec_param.value))
-                        }
-                     },
-                    None => None
+                let var = &self.array_to_string(&fun_block.prev_or_search_up(&fun_block.params[0], res_prev), &sep, res_prev);
+                return match var {
+                    None => None,
+                    Some(var) => Some(VarVal::from_string(var))
                 };
-                 
-                return vec_param
             },
             "filename" => {
                 let param = *self.parameter(&log, 0, fun_block, res_prev);
@@ -793,6 +779,41 @@ impl GenBlockTup {
         //process_template_value(&log, &fun_block.params[i], &fun_block, res_prev)
     }
 
+    fn array_to_string(&self, val: &Option<VarVal>, sep: &str, res_prev: &Option<VarVal>) -> Option<String> {
+        if val.is_none() {
+            return None
+        }
+        let vec_param = val.as_ref().unwrap();
+        if vec_param.val_type == VarType::Array {
+            let first_el = self.prev_or_search_up(&vec_param.values[0], res_prev);
+            let mut collect_str = if first_el.is_some() {
+                first_el.unwrap().value.to_owned()
+            } else {
+                vec_param.values[0].to_owned()
+            }
+                ;
+            let mut next_idx = 1;
+            while next_idx < vec_param.values.len() {
+                collect_str.push_str(&sep);
+                let next_el = self.prev_or_search_up(&vec_param.values[next_idx], res_prev);
+                //collect_str.push_str(&next_el.unwrap_or(&vec_param.values[next_el]));
+                if next_el.is_some() {
+                    collect_str.push_str(&next_el.unwrap().value);
+                } else {
+                    collect_str.push_str(&vec_param.values[next_idx]);
+                }
+                
+                next_idx += 1;
+            }
+            Some(collect_str.clone())
+        } else {
+            Some(vec_param.value.clone())
+        }
+    }
+
+   // fn to_interpolated(&self, val: &str, res_prev: &Option<VarVal>) -> &str {
+     //   val
+    //}
 }
 
 pub fn run(log: &Log, block: GenBlockTup, targets: &mut Vec<String>) -> io::Result<()> {
@@ -871,24 +892,6 @@ pub fn exec_target(log: &Log, target_bl: & GenBlockTup) -> bool {
 
 fn no_parameters(fun: &GenBlock) -> bool {
     fun.block_type == BlockType::Function && fun.params.len() < 2 && (fun.params.len() == 0 || fun.params[0].is_empty())
-}
-
- fn val_to_string(val: Option<VarVal>) -> Option<String> {
-    if val.is_none() {
-        return None
-    }
-    let var_val = val.unwrap();
-    if var_val.val_type == VarType::Array {
-        let mut collect_str = var_val.values[0].to_owned();
-        let mut next_el = 1;
-        while next_el < var_val.values.len() {
-            collect_str.push_str(&var_val.values[next_el]);
-            next_el += 1;
-        }
-        Some(collect_str)
-    } else {
-        Some(var_val.value)
-    }
 }
 
 pub fn vec_to_str(arr: &Vec<String>) -> String {
