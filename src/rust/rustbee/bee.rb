@@ -59,7 +59,7 @@ target version update : . {
        
        write(${~cwd~}/ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.00.03\", 9, & \"",${~~},"\")
+      (&\"1.01.01-nightly\", 12, & \"",${~~},"\")
 }")  # 
    }
 }

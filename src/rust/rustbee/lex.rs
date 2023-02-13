@@ -1422,7 +1422,6 @@ fn process_array_value(_log: &Log, value : &str) -> Result<Vec<String>, String> 
                         let param = buf[0..pos].iter().collect();
                        // log.log(&format!{"param: {}", &param});
                         res.push(param);
-                        
                         pos = 0;
                         state = LexState:: StartParam;
                     },
@@ -1449,9 +1448,9 @@ fn process_array_value(_log: &Log, value : &str) -> Result<Vec<String>, String> 
                         pos += 1;
                     },
                     LexState::InParam  => {
+                        blank_pos = pos;
                         buf[pos] = c;
                         pos += 1;
-                        blank_pos = pos;
                         state = LexState::BlankOrEnd;
                     },
                     LexState::BlankOrEnd => { 
