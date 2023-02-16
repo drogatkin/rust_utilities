@@ -448,28 +448,44 @@ impl GenBlockTup {
             },
             "write" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
-                let mut f =  File::create(*fname) .expect("Error encountered while creating file!");
-                let mut i = 1;
-                let len = fun_block.params.len();
-                while  i < len {
-                    write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).expect("Error in writing file!");
-                   i += 1;
-                }
+                let file = File::create(&*fname);
+                if file.is_ok() {
+                    let mut f = file.unwrap();
+                    let mut i = 1;
+                    let len = fun_block.params.len();
+                    while  i < len {
+                       if write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).is_err() {
+                            log.error(&format!{"Witing in {} failed", fname});
+                            break
+                        }
+                         i += 1;
+                    }
+                } else {
+                    log.error(&format!{"File {} can't be opened for writing", fname});
+                } 
             },
             "writea" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
-                let mut f = OpenOptions::new()
-                    .read(true)
-                    .append(true) 
-                    .create(true)
-                    .open(*fname).expect("Error encountered while opening file!");
-                let mut i = 1;
-                let len = fun_block.params.len();
-                while  i < len {
-                    //log.log(&format!("->{}",self.parameter(&log, i, fun_block, res_prev)));
-                    write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).expect("Error in writing file!");
-                   i += 1;
-                }
+                let file = OpenOptions::new()
+                .read(true)
+                .append(true) 
+                .create(true)
+                .open(&*fname);
+                if file.is_ok() {
+                    let mut f = file.unwrap();
+                    let mut i = 1;
+                    let len = fun_block.params.len();
+                    while  i < len {
+                        //log.log(&format!("->{}",self.parameter(&log, i, fun_block, res_prev)));
+                        if write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).is_err() {
+                            log.error(&format!{"Witing in {} failed", fname});
+                            break
+                        }
+                         i += 1;
+                    }
+                } else {
+                    log.error(&format!{"File {} can't be opened for writing", fname});
+                } 
             },
             "neq" => {
                 log.debug(&format!("comparing {:?} and {:?}", self.parameter(&log, 0, fun_block, res_prev), self.parameter(&log, 1, fun_block, res_prev)));
