@@ -455,7 +455,7 @@ impl GenBlockTup {
                     let len = fun_block.params.len();
                     while  i < len {
                        if write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).is_err() {
-                            log.error(&format!{"Witing in {} failed", fname});
+                            log.error(&format!{"Writing in {} failed", fname});
                             break
                         }
                          i += 1;
@@ -478,7 +478,7 @@ impl GenBlockTup {
                     while  i < len {
                         //log.log(&format!("->{}",self.parameter(&log, i, fun_block, res_prev)));
                         if write!(f, "{}", self.parameter(&log, i, fun_block, res_prev)).is_err() {
-                            log.error(&format!{"Witing in {} failed", fname});
+                            log.error(&format!{"Writing in {} failed", fname});
                             break
                         }
                          i += 1;
@@ -649,8 +649,14 @@ impl GenBlockTup {
             },
             "read" => {
                 let fname = self.parameter(&log, 0, fun_block, res_prev);
-                return Some(VarVal::from_string(&fs::read_to_string(*fname)
-                .ok().unwrap()))
+                let file_content = &fs::read_to_string(&*fname).ok();
+                return match file_content {
+                    Some(content) => return Some(VarVal::from_string(content)),
+                    None => {
+                        log.error(&format!{"File {} can't be opened for reading or a read error", fname});
+                        None
+                    }
+                }
             },
             "newerthan" => {
                 // compare modification date of files specified by 1st parameter
