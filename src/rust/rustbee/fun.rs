@@ -555,16 +555,19 @@ impl GenBlockTup {
                 } else {
                     let status = if cwd.is_empty() { Command::new(&exec)
                     .args(&params)
-                    .status().expect(&format!("{} command with {:?} failed to start", exec, params)) } else {
+                    .status() } else {
                         Command::new(&exec).current_dir(&cwd).args(&params)
-                        .status().expect(&format!("{} command with {:?} in {} failed to start", exec, params, cwd)) 
+                        .status()
                     };
-                    match status.code() {
-                        Some(code) => {
-                            return Some(VarVal::from_i32(code));},
-                            //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
-                        None       => log.error(&format!("Process terminated by signal"))
-                    }
+                    match status {
+                        Ok(status) =>  match status.code() {
+                            Some(code) => {
+                                return Some(VarVal::from_i32(code));},
+                                //self.parent().unwrap().add_var("~~".to_string(), VarVal{val_type: VarType::Number, value: code.to_string(), values: Vec::new()});},
+                            None   => log.error(&format!("Process terminated by signal"))
+                        },
+                        Err(err) => log.error(&format!("{} command with {:?} in {} failed to start, reason {}", exec, params, cwd, err))
+                    }          
                }
             },
             "or" => {
