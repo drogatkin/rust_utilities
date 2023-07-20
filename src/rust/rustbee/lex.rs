@@ -982,7 +982,7 @@ fn read_lex(log: &Log, reader: &mut Reader, mut state: LexState) -> (Lexem, LexS
             log.error(&"Unexpected ending of the script file in quoted token");
             return (Lexem::EOF, state);
         },
-        LexState::EndFunction => {
+        LexState::EndFunction | LexState::InParam => {
             //state = 
             return (Lexem::EOF, state);
         },

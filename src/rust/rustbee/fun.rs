@@ -189,16 +189,18 @@ impl GenBlockTup {
                              BlockType::Function => {
                                 p1.exec_fun(&log, &p1_block, prev_res)
                              },
-                             _ => { todo!("block: {:?}", dep_block.block_type);
+                             _ => { todo!("block: {:?}", p1_block.block_type);
                             }
                         };
                         let r2 : Option<VarVal> =
                             if len == 2 {
-                                  match p1_block.block_type {
+                                let p2 = &dep_block.children[1];
+                                let p2_block = p2.0.borrow();
+                                  match p2_block.block_type {
                                     BlockType::Function => {
-                                        p1.exec_fun(&log, &p1_block, prev_res)
+                                        p2.exec_fun(&log, &p2_block, prev_res)
                                     },
-                                    _ => { todo!("block: {:?}", dep_block.block_type);
+                                    _ => { todo!("block: {:?}", p2_block.block_type);
                                     }
                                 }
                             } else {
@@ -433,6 +435,37 @@ impl GenBlockTup {
                     log.error(&format!("unexpected block(s) {}", children.len()));
                 }
                 return Some(VarVal::from_bool(! children[0].exec(&log, prev_res).unwrap_or_default().is_true()))
+            },
+            BlockType::Eq => {
+                let naked_block = self.0.borrow();
+                let children = &naked_block.children;
+                let len = children.len();
+                if len < 1 {
+                    log.error(&format!("at least one argument has to be specified in eq"));
+                }
+                let mut before_res = children[0].exec(&log, prev_res);
+                for idx in 1..len {
+                    let res = children[idx].exec(&log, prev_res);
+                    match res {
+                        None => {
+                            match before_res {
+                                Some(before_some) => return Some(VarVal::from_bool(false)),
+                                _ => ()
+                            }
+                        },
+                        Some(res_some) => {
+                            match before_res {
+                                None => return Some(VarVal::from_bool(false)),
+                                Some(ref before_some) => if before_some.value != res_some.value {
+                                    return Some(VarVal::from_bool(false))
+                                }
+                            }
+                        }
+                    }
+                    
+                    //before_res =  res;
+                }
+                return Some(VarVal::from_bool(true))
             },
             _ => todo!("block: {:?}, {:?}", self.0.borrow().block_type, self.0.borrow().name)
         }
