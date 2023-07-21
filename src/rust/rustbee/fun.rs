@@ -453,7 +453,7 @@ impl GenBlockTup {
                                 _ => ()
                             }
                         },
-                        Some(res_some) => {
+                        Some(ref res_some) => {
                             match before_res {
                                 None => return Some(VarVal::from_bool(false)),
                                 Some(ref before_some) => if before_some.value != res_some.value {
@@ -463,7 +463,7 @@ impl GenBlockTup {
                         }
                     }
                     
-                    //before_res =  res;
+                    before_res =  res;
                 }
                 return Some(VarVal::from_bool(true))
             },

@@ -33,6 +33,8 @@ enum CmdOption {
      TargetHelp
 }
 
+const SCRIPT_EXT: &str = ".7b";
+
 fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Vec<&'a String>, Vec<String>) {
      let (mut options, mut targets, mut run_args) = (Vec::new(), Vec::new(), Vec::new());
      let mut arg_n = 0;
@@ -120,7 +122,7 @@ fn parse_command<'a>(log: &'a Log, args: &'a Vec<String>) -> (Vec<CmdOption>, Ve
 }
 
 fn is_bee_scrpt(file_path: &str) -> bool {
-     file_path.starts_with("bee") && file_path.ends_with(".rb") 
+     file_path.starts_with("bee") && (file_path.ends_with(".rb") || file_path.ends_with(SCRIPT_EXT))
 }
 
 fn find_script(dir: &Path, name: &str) -> Option<String> {
@@ -182,9 +184,11 @@ fn main() -> io::Result<()> {
      let _ = &lex_tree.add_var(String::from("~os~"),  lex::VarVal::from_string(std::env::consts::OS));
      if std::env::consts::OS == "windows" {
           let _ = &lex_tree.add_var(String::from("~separator~"),  lex::VarVal::from_string("\\"));
+          let _ = &lex_tree.add_var(String::from("~/~"),  lex::VarVal::from_string("\\"));
           let _ = &lex_tree.add_var(String::from("~path_separator~"),  lex::VarVal::from_string(";"));
      } else {
           let _ = &lex_tree.add_var(String::from("~separator~"),  lex::VarVal::from_string("/"));
+          let _ = &lex_tree.add_var(String::from("~/~"),  lex::VarVal::from_string("/"));
           let _ = &lex_tree.add_var(String::from("~path_separator~"),  lex::VarVal::from_string(":"));
      }
      let cwd = Path::new(&".").canonicalize().unwrap().into_os_string().into_string().unwrap();
@@ -254,7 +258,7 @@ fn main() -> io::Result<()> {
      
      if path == "_" {
           let paths = fs::read_dir(&"./").unwrap();
-          //let re = Regex::new(r"bee.*\.rb").unwrap(); if re.is_match(file_path)
+          //let re = Regex::new(r"bee.*\.rb|.7b").unwrap(); if re.is_match(file_path)
           for (_i, path1) in paths.enumerate() {
                let path2 = path1.unwrap().path() ;
                if path2.is_file() {
