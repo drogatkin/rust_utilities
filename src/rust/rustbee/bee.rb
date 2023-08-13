@@ -52,6 +52,10 @@ target version update : . {
         # none
      }
    }
+
+   dependency {
+         anynewer(${~cwd~}/bee.rb,${~cwd~}/${project})
+   }
    
    {
        display(Generating ver.rs)
@@ -59,7 +63,7 @@ target version update : . {
        
        write(${~cwd~}/ver.rs,"// auto generated
 pub fn version() -> (&'static str, u32, &'static str) {
-      (&\"1.02.02-nightly\", 19, & \"",${~~},"\")
+      (&\"1.02.02\", 22, & \"",${~~},"\")
 }")  # 
    }
 }
